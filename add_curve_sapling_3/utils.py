@@ -166,7 +166,7 @@ def spreadAng(dec, splitAng, splitAngV):
     #old = radians(choice([-1,1])*(20 + 0.75*(30 + abs(dec - 90))*random()**2))
     
     splitAng = max(0, splitAng)
-    new = choice([-1,1]) * (splitAng + uniform(-splitAngV,splitAngV)) * 2
+    new = choice([-1,1]) * (splitAng + uniform(-splitAngV,splitAngV)) * 3  # *3 for wider flater branches
     return new
 
 # Determines the angle of upward rotation of a segment due to attractUp
@@ -234,6 +234,7 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
 
         #calc branchRotMat once for non lopsided trees
         branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
+        curvVar = uniform(-stem.curvV,stem.curvV)
         
         # Now for each split add the new spline and adjust the growth direction
         for i in range(numSplit):
@@ -249,7 +250,6 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
             dirVec = zAxis.copy()
             dirVec.rotate(divRotMat)
             if n == 0: #Special case for trunk splits
-                #branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
                 dirVec.rotate(branchRotMat)
             dirVec.rotate(splitRotMat(numSplit,i+1))
             dirVec.rotate(dir)
@@ -288,7 +288,6 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         dirVec = zAxis.copy()
         dirVec.rotate(divRotMat)
         if n == 0: #Special case for trunk splits
-            #branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
             dirVec.rotate(branchRotMat)
         dirVec.rotate(dir)
         #spread
@@ -299,7 +298,7 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         # If there are no splits then generate the growth direction without accounting for spreading of stems
         dirVec = zAxis.copy()
         divRotMat = Matrix.Rotation(stem.curv + uniform(-stem.curvV,stem.curvV),3,'X')
-        dirVec.rotate(divRotMat)       
+        dirVec.rotate(divRotMat)
         #curveUpAng = curveUp(attractUp,dir,stem.segMax)
         #dirVec = Vector((0,-sin(stem.curv - curveUpAng),cos(stem.curv - curveUpAng)))
         dirVec.rotate(dir)
@@ -566,7 +565,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV,
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, oldRotate, ratioPower, resU,
-                    rotate, rotateV, scaleVal, shape, storeN, taper, vertAtt):
+                    rotate, rotateV, scaleVal, shape, storeN, taper, vertAtt, shapeS):
     for p in childP:
         # Add a spline and set the coordinate of the first point.
         newSpline = cu.splines.new('BEZIER')
@@ -605,16 +604,16 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             branchL = p.lengthPar * lMax * shapeRatio(shape,
                                                       (p.lengthPar - p.offset) / (p.lengthPar - baseSize * scaleVal))
             childStems = branches[2] * (0.2 + 0.8 * (branchL / p.lengthPar) / lMax)
-        elif (storeN == levels - 1):
+        else:
+            branchL = p.lengthPar * (length[n] + uniform(-lengthV[n], lengthV[n])) * shapeRatio(shapeS, (p.lengthPar - p.offset) / p.lengthPar)
+            childStems = branches[min(3, n + 1)] * (1.0 - 0.5 * p.offset / p.lengthPar)
+
+        if (storeN == levels - 1):
             # If this is the last level before leaves then we need to generate the child points differently
-            branchL = (length[n] + uniform(-lengthV[n], lengthV[n])) * (p.lengthPar - 0.6 * p.offset)
             if leaves < 0:
                 childStems = False
             else:
                 childStems = leaves * shapeRatio(leafDist, p.offset / p.lengthPar)
-        else:
-            branchL = (length[n] + uniform(-lengthV[n], lengthV[n])) * (p.lengthPar - 0.6 * p.offset)
-            childStems = branches[min(3, n + 1)] * (1.0 - 0.5 * p.offset / p.lengthPar)
 
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
         branchL = max(branchL, 0.0)
@@ -777,6 +776,7 @@ def addTree(props):
     scaleV = props.scaleV#
     attractUp = props.attractUp#
     shape = int(props.shape)#
+    shapeS = int(props.shapeS)#
     branchDist = props.branchDist
     baseSize = props.baseSize
     ratio = props.ratio
@@ -911,7 +911,7 @@ def addTree(props):
             vertAtt = fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
                                       curveRes, curveV, downAngle, downAngleV, leafDist, leaves, length, lengthV,
                                       levels, n, oldRotate, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
-                                      taper, vertAtt)
+                                      taper, vertAtt, shapeS)
 
         childP = []
         # Now grow each of the stems in the list of those to be extended

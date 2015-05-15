@@ -254,6 +254,10 @@ class AddTree(bpy.types.Operator):
         description='The overall shape of the tree (Shape)',
         items=shapeList,
         default='7', update=update_tree)
+    shapeS = EnumProperty(name='Secondary Branches Shape',
+        description='The shape of secondary splits',
+        items=shapeList,
+        default='4', update=update_tree)
     branchDist = FloatProperty(name='Branch Distribution',
         description='',
         min=0.1,
@@ -417,6 +421,7 @@ class AddTree(bpy.types.Operator):
             
             box.prop(self, 'handleType')
             box.prop(self, 'shape')
+            box.prop(self, 'shapeS')
             box.prop(self, 'branchDist')
             box.prop(self, 'seed')
 
