@@ -7,6 +7,6 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Back curvature now adds to curvature
 * New branch distribution feature to adjust how the first level is distributed along the height of the tree
 * New feature to control shape of secondary branch split levels
-* New feature for minimum branch radius to brevent needle thin branches, taper removed
+* New feature for minimum branch radius to prevent needle-thin branches, taper removed
 * New feature to make number of splits proportional to branch length
 
