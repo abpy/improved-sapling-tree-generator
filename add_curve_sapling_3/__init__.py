@@ -232,6 +232,9 @@ class AddTree(bpy.types.Operator):
         soft_max=3,
         default=[0, 0, 0, 0],
         size=4, update=update_tree)
+    splitByLen = BoolProperty(name='Split relative to length',
+        description='Split proportional to branch length',
+        default=False, update=update_tree)
     splitAngle = FloatVectorProperty(name='Split Angle',
         description='Angle of branch splitting (nSplitAngle)',
         default=[0, 0, 0, 0],
@@ -272,6 +275,10 @@ class AddTree(bpy.types.Operator):
         description='Base radius size (Ratio)',
         min=0.0,
         default=0.015, update=update_tree)
+    minRadius = FloatProperty(name='Minimum Radius',
+        description='Minimum branch Radius',
+        min=0.0,
+        default=0.0, update=update_tree)
     taper = FloatVectorProperty(name='Taper',
         description='The fraction of tapering on each branch (nTaper)',
         min=0.0,
@@ -427,6 +434,7 @@ class AddTree(bpy.types.Operator):
 
             box.label("Branch Radius:")
             box.prop(self, 'ratio')
+            box.prop(self, 'minRadius')
             row = box.row()
             row.prop(self, 'scale0')
             row.prop(self, 'scaleV0')
@@ -466,6 +474,7 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'levels')
             box.prop(self, 'baseSplits')
             box.prop(self, 'baseSize')
+            box.prop(self, 'splitByLen')
             
             split = box.split()
             
@@ -501,7 +510,7 @@ class AddTree(bpy.types.Operator):
             col.prop(self, 'lengthV')
             col.prop(self, 'downAngleV')
             col.prop(self, 'curveV')
-            col.prop(self, 'taper')
+            #col.prop(self, 'taper')
 
         elif self.chooseSet == '3':
             box = layout.box()

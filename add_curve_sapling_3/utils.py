@@ -88,7 +88,7 @@ class childPoint:
 # This function calculates the shape ratio as defined in the paper
 def shapeRatio(shape,ratio,pruneWidthPeak=0.0,prunePowerHigh=0.0,prunePowerLow=0.0):
     if shape == 0:
-        return 0.2 + 0.8*ratio
+        return 0.05 + 0.95*ratio #0.2 + 0.8*ratio
     elif shape == 1:
         return 0.2 + 0.8*sin(pi*ratio)
     elif shape == 2:
@@ -543,7 +543,7 @@ def create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape
 
 
 def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU, scale0, scaleV0,
-                    scaleVal, taper, vertAtt):
+                    scaleVal, taper, vertAtt, minRadius):
     vertAtt = 0.0
     newSpline = cu.splines.new('BEZIER')
     cu.resolution_u = resU
@@ -556,6 +556,8 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
     childStems = branches[1]
     startRad = branchL * ratio * (scale0 + uniform(-scaleV0, scaleV0))
     endRad = startRad * (1 - taper[0])
+    startRad = max(startRad, minRadius)
+    endRad = max(endRad, minRadius)
     newPoint.radius = startRad
     addstem(
         stemSpline(newSpline, curve[0] / curveRes[0], curveV[0] / curveRes[0], 0, curveRes[0], branchL / curveRes[0],
@@ -565,7 +567,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV,
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, oldRotate, ratioPower, resU,
-                    rotate, rotateV, scaleVal, shape, storeN, taper, vertAtt, shapeS):
+                    rotate, rotateV, scaleVal, shape, storeN, taper, vertAtt, shapeS, minRadius):
     for p in childP:
         # Add a spline and set the coordinate of the first point.
         newSpline = cu.splines.new('BEZIER')
@@ -624,6 +626,9 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         except TypeError:
             startRad = p.radiusPar[1]
         endRad = startRad * (1 - taper[n])
+        startRad = max(startRad, minRadius)
+        endRad = max(endRad, minRadius)
+    
         newPoint.radius = startRad
         # If curveBack is used then the curviness of the stem is different for the first half
         if curveBack[n] == 0:
@@ -642,7 +647,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     deleteSpline, forceSprout, handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist):
+                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -685,7 +690,11 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 elif (k == 1) and (n == 0):
                     numSplit = baseSplits
                 else:
-                    numSplit = splits(segSplits[n])
+                    if (n == 1) and splitByLen:
+                        L = ((spl.segL * curveRes[n]) / scaleVal) / length[n]
+                        numSplit = splits(segSplits[n] * L)
+                    else:
+                        numSplit = splits(segSplits[n])
                 if (k == int(curveRes[n] / 2 + 0.5)) and (curveBack[n] != 0):
                     old = -2 * curve[n] / curveRes[n] + 2 * curveBack[n] / curveRes[n]
                     new = -2*curve[n]/curveRes[n] + 2*(curve[n] - 2*curveBack[n])/curveRes[n]
@@ -770,6 +779,7 @@ def addTree(props):
     curveBack = toRad(props.curveBack)#
     baseSplits = props.baseSplits#
     segSplits = props.segSplits#
+    splitByLen = props.splitByLen
     splitAngle = toRad(props.splitAngle)#
     splitAngleV = toRad(props.splitAngleV)#
     scale = props.scale#
@@ -780,6 +790,7 @@ def addTree(props):
     branchDist = props.branchDist
     baseSize = props.baseSize
     ratio = props.ratio
+    minRadius = props.minRadius
     taper = props.taper#
     ratioPower = props.ratioPower#
     downAngle = toRad(props.downAngle)#
@@ -902,7 +913,7 @@ def addTree(props):
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
             vertAtt = kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU,
-                                      scale0, scaleV0, scaleVal, taper, vertAtt)
+                                      scale0, scaleV0, scaleVal, taper, vertAtt, minRadius)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:
             # Store the old rotation to allow new stems to be rotated away from the previous one.
@@ -911,7 +922,7 @@ def addTree(props):
             vertAtt = fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
                                       curveRes, curveV, downAngle, downAngleV, leafDist, leaves, length, lengthV,
                                       levels, n, oldRotate, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
-                                      taper, vertAtt, shapeS)
+                                      taper, vertAtt, shapeS, minRadius)
 
         childP = []
         # Now grow each of the stems in the list of those to be extended
@@ -942,7 +953,7 @@ def addTree(props):
                                                   originalCurvV, originalHandleL, originalHandleR, originalLength,
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                                                  splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist)
+                                                  splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen)
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here
