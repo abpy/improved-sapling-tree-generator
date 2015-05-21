@@ -279,6 +279,9 @@ class AddTree(bpy.types.Operator):
         description='Minimum branch Radius',
         min=0.0,
         default=0.0, update=update_tree)
+    closeTip = BoolProperty(name='Close Tip',
+        description='Set radius at branch tips to zero',
+        default=False, update=update_tree)
     taper = FloatVectorProperty(name='Taper',
         description='The fraction of tapering on each branch (nTaper)',
         min=0.0,
@@ -435,6 +438,7 @@ class AddTree(bpy.types.Operator):
             box.label("Branch Radius:")
             box.prop(self, 'ratio')
             box.prop(self, 'minRadius')
+            box.prop(self, 'closeTip')
             row = box.row()
             row.prop(self, 'scale0')
             row.prop(self, 'scaleV0')
