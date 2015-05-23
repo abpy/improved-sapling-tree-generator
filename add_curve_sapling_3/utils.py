@@ -346,13 +346,20 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
 
     vertsList = []
     facesList = []
+    
+    # If the -ve flag for rotate is used we need to find which side of the stem the last child point was and then grow in the opposite direction.
+    if rotate < 0.0:
+        oldRot = -copysign(rotate + uniform(-rotateV, rotateV), oldRot)
+    # Otherwise just generate a random number in the specified range
+    else:
+        oldRot += rotate + uniform(-rotateV, rotateV)
 
     # If the special -ve flag is used we need a different rotation of the leaf geometry
     if leaves < 0:
         rotMat = Matrix.Rotation(oldRot,3,'Y')
         oldRot += rotate/abs(leaves)
     else:
-        oldRot += rotate+uniform(-rotateV,rotateV)
+        #oldRot += rotate+uniform(-rotateV,rotateV)
         downRotMat = Matrix.Rotation(downAngle+uniform(-downAngleV,downAngleV),3,'X')
         rotMat = Matrix.Rotation(oldRot,3,'Z')
 
@@ -360,7 +367,7 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
     #dirVec = zAxis.copy()
     orientationVec = zAxis.copy()
 
-    # If the bending of the leaves is used we need to rotated them differently
+    # If the bending of the leaves is used we need to rotate them differently
     if (bend != 0.0) and (leaves >= 0):
 #        normal.rotate(downRotMat)
 #        orientationVec.rotate(downRotMat)
@@ -387,13 +394,15 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
 
     # For each of the verts we now rotate and scale them, then append them to the list to be added to the mesh
     for v in verts:
-        
         v.z *= leafScale
         v.x *= leafScaleX*leafScale
+        
+        if rotate < 0:
+            v.rotate(Euler((0, 0, radians(90))))
 
         if leaves > 0:
             v.rotate(downRotMat)
-
+        
         v.rotate(rotMat)
         v.rotate(quat)
 
@@ -404,7 +413,6 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
             v.rotate(rotateX)
             v.rotate(rotateZOrien2)
 
-        #v.rotate(quat)
     for v in verts:
         v += loc
         vertsList.append([v.x,v.y,v.z])
@@ -547,7 +555,7 @@ def create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape
 
 
 def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU, scale0, scaleV0,
-                    scaleVal, taper, vertAtt, minRadius):
+                    scaleVal, taper, vertAtt, minRadius, rootFlare):
     vertAtt = 0.0
     newSpline = cu.splines.new('BEZIER')
     cu.resolution_u = resU
@@ -562,7 +570,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
     endRad = startRad * (1 - taper[0])
     startRad = max(startRad, minRadius)
     endRad = max(endRad, minRadius)
-    newPoint.radius = startRad
+    newPoint.radius = startRad * rootFlare
     addstem(
         stemSpline(newSpline, curve[0] / curveRes[0], curveV[0] / curveRes[0], 0, curveRes[0], branchL / curveRes[0],
                    childStems, startRad, endRad, 0))
@@ -632,8 +640,8 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         endRad = startRad * (1 - taper[n])
         startRad = max(startRad, minRadius)
         endRad = max(endRad, minRadius)
-    
         newPoint.radius = startRad
+        
         # If curveBack is used then the curviness of the stem is different for the first half
         if curveBack[n] == 0:
             curveVal = curve[n] / curveRes[n]
@@ -703,8 +711,6 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     old = -2 * curve[n] / curveRes[n] + 2 * curveBack[n] / curveRes[n]
                     new = -2*curve[n]/curveRes[n] + 2*(curve[n] - 2*curveBack[n])/curveRes[n]
                     spl.curvAdd(new)
-                if n == 0:
-                    spl.curv = 0.0
                 growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip)  # Add proper refs for radius and attractUp
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
@@ -745,6 +751,9 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             if n == 0:
                 trimNum = int(baseSize * (len(tVals) + 1))
                 tVals = tVals[trimNum:]
+            
+            #possible feature to grow branches in rings
+            #tVals = [round(t * 20) / 20 for t in tVals]
 
             #branch distribution
             if n == 0:
@@ -798,6 +807,7 @@ def addTree(props):
     ratio = props.ratio
     minRadius = props.minRadius
     closeTip = props.closeTip
+    rootFlare = props.rootFlare
     taper = props.taper#
     ratioPower = props.ratioPower#
     downAngle = toRad(props.downAngle)#
@@ -920,7 +930,7 @@ def addTree(props):
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
             vertAtt = kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU,
-                                      scale0, scaleV0, scaleVal, taper, vertAtt, minRadius)
+                                      scale0, scaleV0, scaleVal, taper, vertAtt, minRadius, rootFlare)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:
             # Store the old rotation to allow new stems to be rotated away from the previous one.
