@@ -14,5 +14,5 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Close tip for branch radius
 * Option to make number of splits proportional to branch length
 * Root flare to make trunk wider at base
-* Leaf rotation now uses negetive values like branches do
+* Leaf rotation can now use negetive values like branches do
 
