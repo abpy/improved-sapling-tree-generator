@@ -266,6 +266,10 @@ class AddTree(bpy.types.Operator):
         min=0.1,
         soft_max=10,
         default=1.0, update=update_tree)
+    nrings = IntProperty(name='Branch Rings',
+        description='grow branches in rings',
+        min=0,
+        default=0, update=update_tree)
     baseSize = FloatProperty(name='Trunk Height',
         description='Fraction of tree height with no branches (BaseSize)',
         min=0.0,
@@ -437,6 +441,8 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'shape')
             box.prop(self, 'shapeS')
             box.prop(self, 'branchDist')
+            box.prop(self, 'nrings')
+            box.label("")
             box.prop(self, 'seed')
 
             box.label("Branch Radius:")

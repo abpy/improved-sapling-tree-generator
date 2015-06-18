@@ -24,6 +24,7 @@ import copy
 
 from mathutils import *
 from math import pi,sin,degrees,radians,atan2,copysign,cos,acos
+from math import floor, ceil
 from random import random,uniform,seed,choice,getstate,setstate
 from bpy.props import *
 from collections import deque
@@ -162,7 +163,7 @@ def stems(stemsMax,lPar,offset,lChild=False,lChildMax=None):
 
 # Returns the spreading angle
 #horizontal spliting
-def spreadAng(dec, splitAng, splitAngV):
+def spreadAng(splitAng, splitAngV):
     #old = radians(choice([-1,1])*(20 + 0.75*(30 + abs(dec - 90))*random()**2))
     
     splitAng = max(0, splitAng)
@@ -224,6 +225,9 @@ def toRad(list):
 
 # This is the function which extends (or grows) a given stem.
 def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip):
+    
+    spreadangle = spreadAng(splitAng, splitAngV)
+    
     # First find the current direction of the stem
     dir = stem.quat()
     # If the stem splits, we need to add new splines etc
@@ -255,7 +259,8 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
             dirVec.rotate(dir)
 
             # Spread the stem out in a random fashion
-            spreadMat = Matrix.Rotation(spreadAng(degrees(dirVec.z), splitAng, splitAngV),3,'Z')
+            #spreadMat = Matrix.Rotation(spreadAng(degrees(dirVec.z), splitAng, splitAngV), 3,'Z')
+            spreadMat = Matrix.Rotation(spreadangle,3,'Z')
             if n != 0: #Special case for trunk splits
                 dirVec.rotate(spreadMat)
             
@@ -292,8 +297,10 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         if n == 0: #Special case for trunk splits
             dirVec.rotate(branchRotMat)
         dirVec.rotate(dir)
+        
         #spread
-        spreadMat = Matrix.Rotation(spreadAng(degrees(dirVec.z), splitAng, splitAngV),3,'Z')
+        #spreadMat = Matrix.Rotation(spreadAng(degrees(dirVec.z), splitAng, splitAngV),3,'Z')
+        spreadMat = Matrix.Rotation(-spreadangle,3,'Z')
         if n != 0: #Special case for trunk splits
             dirVec.rotate(spreadMat)
     else:
@@ -456,6 +463,7 @@ def create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape
     offsetVal = 0
     # For all the splines in the curve we need to add bones at each bezier point
     for i, parBone in enumerate(splineToBone):
+        print(i)
         s = cu.splines[i]
         b = None
         # Get some data about the spline like length and number of points
@@ -502,6 +510,7 @@ def create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape
             if armAnim:
                 # Define all the required parameters of the wind sway by the dimension of the spline
                 a0 = 4 * splineL * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
+                ##a0 = 1.0 / max(s.bezier_points[n].radius, 1e-6)
                 a1 = (windSpeed / 50) * a0
                 a2 = (windGust / 50) * a0 + a1 / 2
 
@@ -659,7 +668,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     deleteSpline, forceSprout, handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip):
+                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip, nrings):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -752,8 +761,9 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 trimNum = int(baseSize * (len(tVals) + 1))
                 tVals = tVals[trimNum:]
             
-            #possible feature to grow branches in rings
-            #tVals = [round(t * 20) / 20 for t in tVals]
+            #grow branches in rings
+            if (n == 0) and (nrings > 0):
+                tVals = [(ceil(t * nrings - .5)) / nrings for t in tVals]
 
             #branch distribution
             if n == 0:
@@ -803,6 +813,7 @@ def addTree(props):
     shape = int(props.shape)#
     shapeS = int(props.shapeS)#
     branchDist = props.branchDist
+    nrings = props.nrings
     baseSize = props.baseSize
     ratio = props.ratio
     minRadius = props.minRadius
@@ -970,7 +981,8 @@ def addTree(props):
                                                   originalCurvV, originalHandleL, originalHandleR, originalLength,
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                                                  splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip)
+                                                  splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, 
+                                                  branchDist, length, splitByLen, closeTip, nrings)
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here
