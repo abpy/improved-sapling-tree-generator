@@ -224,12 +224,18 @@ def toRad(list):
     return [radians(a) for a in list]
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip):
+def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip, kp):
     
     spreadangle = spreadAng(splitAng, splitAngV)
+    curveangle = stem.curv + (uniform(-stem.curvV,stem.curvV) * kp)
+    curveVar = uniform(-stem.curvV,stem.curvV) * kp
     
     # First find the current direction of the stem
     dir = stem.quat()
+    
+    #edir = dir.to_euler("XYZ", Euler((0, 0, 0)))
+    #print(degrees(edir.x), degrees(edir.y), degrees(edir.z))
+    
     # If the stem splits, we need to add new splines etc
     if numSplit > 0:
         # Get the curve data
@@ -238,7 +244,6 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
 
         #calc branchRotMat once for non lopsided trees
         branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
-        curvVar = uniform(-stem.curvV,stem.curvV)
         
         # Now for each split add the new spline and adjust the growth direction
         for i in range(numSplit):
@@ -250,16 +255,21 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
             # Here we make the new "sprouting" stems diverge from the current direction
             angle = stem.splitAngle(splitAng,splitAngV)
             
-            divRotMat = Matrix.Rotation(angle - stem.curv + uniform(-stem.curvV,stem.curvV),3,'X')
+            divRotMat = Matrix.Rotation(angle - curveangle,3,'X')
             dirVec = zAxis.copy()
             dirVec.rotate(divRotMat)
+            
+            #horizontal curvature variation
+            curveVarMat = Matrix.Rotation(curveVar,3,'Y')
+            dirVec.rotate(curveVarMat)
+            
             if n == 0: #Special case for trunk splits
                 dirVec.rotate(branchRotMat)
+            
             dirVec.rotate(splitRotMat(numSplit,i+1))
             dirVec.rotate(dir)
 
             # Spread the stem out in a random fashion
-            #spreadMat = Matrix.Rotation(spreadAng(degrees(dirVec.z), splitAng, splitAngV), 3,'Z')
             spreadMat = Matrix.Rotation(spreadangle,3,'Z')
             if n != 0: #Special case for trunk splits
                 dirVec.rotate(spreadMat)
@@ -291,25 +301,32 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
                 
         # The original spline also needs to keep growing so adjust its direction too
         angle = stem.splitAngle(splitAng,splitAngV)
-        divRotMat = Matrix.Rotation(angle + stem.curv + uniform(-stem.curvV,stem.curvV),3,'X')
+        divRotMat = Matrix.Rotation(angle + curveangle,3,'X')
         dirVec = zAxis.copy()
         dirVec.rotate(divRotMat)
+        
+        #horizontal curvature variation
+        curveVarMat = Matrix.Rotation(curveVar,3,'Y')
+        dirVec.rotate(curveVarMat)
+        
         if n == 0: #Special case for trunk splits
             dirVec.rotate(branchRotMat)
         dirVec.rotate(dir)
         
         #spread
-        #spreadMat = Matrix.Rotation(spreadAng(degrees(dirVec.z), splitAng, splitAngV),3,'Z')
         spreadMat = Matrix.Rotation(-spreadangle,3,'Z')
         if n != 0: #Special case for trunk splits
             dirVec.rotate(spreadMat)
     else:
         # If there are no splits then generate the growth direction without accounting for spreading of stems
         dirVec = zAxis.copy()
-        divRotMat = Matrix.Rotation(stem.curv + uniform(-stem.curvV,stem.curvV),3,'X')
+        divRotMat = Matrix.Rotation(curveangle,3,'X')
         dirVec.rotate(divRotMat)
-        #curveUpAng = curveUp(attractUp,dir,stem.segMax)
-        #dirVec = Vector((0,-sin(stem.curv - curveUpAng),cos(stem.curv - curveUpAng)))
+        
+        #horizontal curvature variation
+        curveVarMat = Matrix.Rotation(curveVar,3,'Y')
+        dirVec.rotate(curveVarMat)
+        
         dirVec.rotate(dir)
         
     upRotAxis = xAxis.copy()
@@ -330,9 +347,9 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     if (stem.seg == stem.segMax-1) and closeTip:
         newPoint.radius = 0.0
     # There are some cases where a point cannot have handles as VECTOR straight away, set these now.
-    if numSplit != 0:
-        tempPoint = stem.spline.bezier_points[-2]
-        (tempPoint.handle_left_type,tempPoint.handle_right_type) = ('VECTOR','VECTOR')
+    #if numSplit != 0:
+    #    tempPoint = stem.spline.bezier_points[-2]
+    #    (tempPoint.handle_left_type,tempPoint.handle_right_type) = ('VECTOR','VECTOR')
     if len(stem.spline.bezier_points) == 2:
         tempPoint = stem.spline.bezier_points[0]
         (tempPoint.handle_left_type,tempPoint.handle_right_type) = ('VECTOR','VECTOR')
@@ -704,6 +721,13 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             # Make a copy of the current list to avoid continually adding to the list we're iterating over
             tempList = splineList[:]
             # print('Leng: ',len(tempList))
+            
+            #for curve variation
+            if curveRes[n] > 0:
+                kp = (k / (curveRes[n] - 1)) * 2
+            else:
+                kp = 1.0
+            
             # For each of the splines in this list set the number of splits and then grow it
             for spl in tempList:
                 if k == 0:
@@ -720,7 +744,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     old = -2 * curve[n] / curveRes[n] + 2 * curveBack[n] / curveRes[n]
                     new = -2*curve[n]/curveRes[n] + 2*(curve[n] - 2*curveBack[n])/curveRes[n]
                     spl.curvAdd(new)
-                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip)  # Add proper refs for radius and attractUp
+                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp)  # Add proper refs for radius and attractUp
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
