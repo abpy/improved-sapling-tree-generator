@@ -724,7 +724,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             
             #for curve variation
             if curveRes[n] > 0:
-                kp = (k / (curveRes[n] - 1)) * 2
+                kp = (k / (curveRes[n] - 1))# * 2
             else:
                 kp = 1.0
             
@@ -953,7 +953,7 @@ def addTree(props):
  
     leafMesh = None # in case we aren't creating leaves, we'll still have the variable
 
-     # Each of the levels needed by the user we grow all the splines
+    # Each of the levels needed by the user we grow all the splines
     for n in range(levels):
         storeN = n
         stemList = deque()
@@ -1007,6 +1007,9 @@ def addTree(props):
                                                   pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, 
                                                   branchDist, length, splitByLen, closeTip, nrings)
+        
+        #for p in childP:
+        #    print(p.co)
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here
