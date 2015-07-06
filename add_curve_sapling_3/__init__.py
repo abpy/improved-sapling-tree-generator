@@ -125,6 +125,14 @@ class ImportData(bpy.types.Operator):
         f.close()
         #print(settings)
         settings = eval(settings)
+        
+        #use old attractup
+        if type(settings['attractUp']) == float:
+            atr = settings['attractUp']
+            settings['attractUp'] = [0, 0, atr, atr]
+        #use old taper:
+        settings['trunkTaper'] = settings['taper'][0]
+            
         # Set the flag to use the settings
         useSet = True
         return {'FINISHED'}
@@ -250,9 +258,10 @@ class AddTree(bpy.types.Operator):
     scaleV = FloatProperty(name='Scale Variation',
         description='The variation in the tree scale (ScaleV)',
         default=3.0, update=update_tree)
-    attractUp = FloatProperty(name='Vertical Attraction',
+    attractUp = FloatVectorProperty(name='Vertical Attraction',
         description='Branch upward attraction',
-        default=0.0, update=update_tree)
+        default=[0, 0, 0, 0],
+        size=4, update=update_tree)
     shape = EnumProperty(name='Shape',
         description='The overall shape of the tree (Shape)',
         items=shapeList,
@@ -275,6 +284,11 @@ class AddTree(bpy.types.Operator):
         min=0.0,
         max=1.0,
         default=0.4, update=update_tree)
+    splitBias = FloatProperty(name='splitBias',
+        description='splitBias',
+        soft_min=-2.0,
+        soft_max=2.0,
+        default=0.0, update=update_tree)
     ratio = FloatProperty(name='Ratio',
         description='Base radius size (Ratio)',
         min=0.0,
@@ -296,6 +310,11 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=[1, 1, 1, 1],
         size=4, update=update_tree)
+    trunkTaper = FloatProperty(name='Trunk Taper',
+        description='The fraction of tapering',
+        min=0.0,
+        max=1.0,
+        default=1.0, update=update_tree)
     ratioPower = FloatProperty(name='Branch Radius Ratio',
         description=('Power which defines the radius of a branch compared to '
         'the radius of the branch it grew from (RatioPower)'),
@@ -452,6 +471,8 @@ class AddTree(bpy.types.Operator):
             row.prop(self, 'scaleV0')
             
             box.prop(self, 'minRadius')
+            box.prop(self, 'trunkTaper')
+            box.prop(self, 'ratioPower')
             box.prop(self, 'closeTip')
             box.prop(self, 'rootFlare')
             
@@ -490,6 +511,7 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'levels')
             box.prop(self, 'baseSplits')
             box.prop(self, 'baseSize')
+            box.prop(self, 'splitBias')
             box.prop(self, 'splitByLen')
             
             split = box.split()
@@ -509,10 +531,10 @@ class AddTree(bpy.types.Operator):
         elif self.chooseSet == '2':
             box = layout.box()
             box.label("Branch Growth:")
-            box.prop(self, 'startCurv')
-            box.prop(self, 'attractUp')
+            #box.prop(self, 'startCurv')
+            #box.prop(self, 'attractUp')
 
-            box.prop(self, 'ratioPower')
+            #box.prop(self, 'ratioPower')
             
             split = box.split()
             
@@ -527,6 +549,7 @@ class AddTree(bpy.types.Operator):
             col.prop(self, 'downAngleV')
             col.prop(self, 'curveV')
             #col.prop(self, 'taper')
+            col.prop(self, 'attractUp')
 
         elif self.chooseSet == '3':
             box = layout.box()
