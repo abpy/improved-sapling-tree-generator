@@ -8,6 +8,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 * 'Conical' shape is narrower at tip like real conifers
 * Curvature variation now bends branches in multiple directions and increases along length of branch
 * Auto curve handles is now enabled for branch splits
+* fixed how child branch start points are calculated
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
@@ -18,4 +19,6 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Option to make number of splits proportional to branch length
 * Root flare to make trunk wider at base
 * Leaf rotation can now use negetive values like branches do
+* vertical atraction can now be set individually for each split level
+* experimental 'split bias' for trunk splits to put more splits at top or bottom of tree
 
