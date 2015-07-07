@@ -247,8 +247,8 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         cu = bpy.data.curves[cuData]
 
         #calc branchRotMat
-        #branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
-        branchRotMat = Matrix.Rotation(radians(brRot),3,'Z')
+        branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
+        #branchRotMat = Matrix.Rotation(radians(brRot),3,'Z')
         
         # Now for each split add the new spline and adjust the growth direction
         for i in range(numSplit):
@@ -733,9 +733,6 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             else:
                 kp = 1.0
             
-            #rotate trunk split angle
-            brRot += 137.5
-            
             # not working yet
             #split bias
             splitValue = segSplits[n]
@@ -765,6 +762,9 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     spl.curv += -4 * (curveBack[n] / curveRes[n])
                 
                 growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, k, brRot)  # Add proper refs for radius and attractUp
+            
+                #rotate trunk split angle
+                brRot += 137.5
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
