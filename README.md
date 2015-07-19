@@ -3,6 +3,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 
 ####Change Log
 * Rearranged Interface
+* Moved radius settings to a seperate panel
 * Branch spliting now works more predictably
 * Back curvature now adds to curvature
 * 'Conical' shape is narrower at tip like real conifers
@@ -13,7 +14,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
 * Option to grow branches in rings, like pine trees
-* Control of shape of secondary branch split levels
+* Control the shape of secondary branch split levels
 * Minimum branch radius to prevent needle-thin branches, taper removed
 * Close tip for branch radius
 * Option to make number of splits proportional to branch length
@@ -21,4 +22,5 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Leaf rotation can now use negetive values like branches do
 * vertical atraction can now be set individually for each split level
 * experimental 'split bias' for trunk splits to put more splits at top or bottom of tree
+* split start height for longer trunk before splitting
 
