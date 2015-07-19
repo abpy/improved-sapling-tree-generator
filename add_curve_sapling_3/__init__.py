@@ -62,11 +62,12 @@ handleList = [('0', 'Auto', 'Auto'),
                 ('1', 'Vector', 'Vector')]
 
 settings = [('0', 'Geometry', 'Geometry'),
-            ('1', 'Branch Splitting', 'Branch Splitting'),
-            ('2', 'Branch Growth', 'Branch Growth'),
-            ('3', 'Pruning', 'Pruning'),
-            ('4', 'Leaves', 'Leaves'),
-            ('5', 'Armature', 'Armature')]
+            ('1', 'Branch Radius', 'Branch Radius'),
+            ('2', 'Branch Splitting', 'Branch Splitting'),
+            ('3', 'Branch Growth', 'Branch Growth'),
+            ('4', 'Pruning', 'Pruning'),
+            ('5', 'Leaves', 'Leaves'),
+            ('6', 'Armature', 'Armature')]
 
 
 def getPresetpath():
@@ -284,6 +285,11 @@ class AddTree(bpy.types.Operator):
         min=0.0,
         max=1.0,
         default=0.4, update=update_tree)
+    splitHeight = FloatProperty(name='Split Height',
+        description='Fraction of tree height with no splits',
+        min=0.0,
+        max=1.0,
+        default=0.2, update=update_tree)
     splitBias = FloatProperty(name='splitBias',
         description='splitBias',
         soft_min=-2.0,
@@ -463,18 +469,6 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'nrings')
             box.label("")
             box.prop(self, 'seed')
-
-            box.label("Branch Radius:")
-            box.prop(self, 'ratio')
-            row = box.row()
-            row.prop(self, 'scale0')
-            row.prop(self, 'scaleV0')
-            
-            box.prop(self, 'minRadius')
-            box.prop(self, 'trunkTaper')
-            box.prop(self, 'ratioPower')
-            box.prop(self, 'closeTip')
-            box.prop(self, 'rootFlare')
             
             box.label("Tree Scale:")
             row = box.row()
@@ -504,13 +498,28 @@ class AddTree(bpy.types.Operator):
             row = box.row()
             row.menu('sapling.presetmenu', text='Load Preset')
             row.prop(self, 'limitImport')
-
+        
         elif self.chooseSet == '1':
+            box = layout.box()
+            box.label("Branch Radius:")
+            box.prop(self, 'ratio')
+            row = box.row()
+            row.prop(self, 'scale0')
+            row.prop(self, 'scaleV0')
+            
+            box.prop(self, 'minRadius')
+            box.prop(self, 'closeTip')
+            box.prop(self, 'trunkTaper')
+            box.prop(self, 'ratioPower')
+            box.prop(self, 'rootFlare')
+
+        elif self.chooseSet == '2':
             box = layout.box()
             box.label("Branch Splitting:")
             box.prop(self, 'levels')
             box.prop(self, 'baseSplits')
             box.prop(self, 'baseSize')
+            box.prop(self, 'splitHeight')
             box.prop(self, 'splitBias')
             box.prop(self, 'splitByLen')
             
@@ -528,7 +537,7 @@ class AddTree(bpy.types.Operator):
 
             box.column().prop(self, 'curveRes')
 
-        elif self.chooseSet == '2':
+        elif self.chooseSet == '3':
             box = layout.box()
             box.label("Branch Growth:")
             #box.prop(self, 'startCurv')
@@ -551,7 +560,7 @@ class AddTree(bpy.types.Operator):
             #col.prop(self, 'taper')
             col.prop(self, 'attractUp')
 
-        elif self.chooseSet == '3':
+        elif self.chooseSet == '4':
             box = layout.box()
             box.label("Pruning:")
             box.prop(self, 'prune')
@@ -563,7 +572,7 @@ class AddTree(bpy.types.Operator):
             row.prop(self, 'prunePowerHigh')
             row.prop(self, 'prunePowerLow')
 
-        elif self.chooseSet == '4':
+        elif self.chooseSet == '5':
             box = layout.box()
             box.label("Leaves:")
             box.prop(self, 'showLeaves')
@@ -577,7 +586,7 @@ class AddTree(bpy.types.Operator):
             
             box.prop(self, 'bend')
 
-        elif self.chooseSet == '5':
+        elif self.chooseSet == '6':
             box = layout.box()
             box.label("Armature and Animation:")
             

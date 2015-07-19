@@ -125,6 +125,13 @@ def splits(n):
     splitError -= (nEff - n)
     return int(nEff)
 
+def splits2(n):
+    r = random()
+    if r < n:
+        return 1
+    else:
+        return 0
+
 # Determine the declination from a given quaternion
 def declination(quat):
     tempVec = zAxis.copy()
@@ -225,11 +232,11 @@ def toRad(list):
 
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip, kp, k, brRot):
+def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip, kp, brRot, splitHeight):
     
     #curv at base
     sCurv = stem.curv
-    if (n == 0) and (k <= 3):
+    if (n == 0) and (kp <= splitHeight):
         sCurv = 0.0
     
     angle = stem.splitAngle(splitAng,splitAngV)
@@ -689,7 +696,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     deleteSpline, forceSprout, handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip, nrings, splitBias):
+                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -728,7 +735,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             # print('Leng: ',len(tempList))
             
             #for curve variation
-            if curveRes[n] > 0:
+            if curveRes[n] > 1:
                 kp = (k / (curveRes[n] - 1)) # * 2
             else:
                 kp = 1.0
@@ -744,8 +751,8 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             for spl in tempList:
                 if k == 0:
                     numSplit = 0
-                #elif (n == 0) and (k < ((curveRes[n]-1) * .75)):
-                #    numSplit = 0
+                elif (n == 0) and (k < ((curveRes[n]-1) * splitHeight)) and (k != 1):
+                    numSplit = 0
                 elif (k == 1) and (n == 0):
                     numSplit = baseSplits
                 else:
@@ -761,10 +768,10 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     #spl.curvAdd(new)
                     spl.curv += -4 * (curveBack[n] / curveRes[n])
                 
-                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, k, brRot)  # Add proper refs for radius and attractUp
+                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, brRot, splitHeight)  # Add proper refs for radius and attractUp
             
-                #rotate trunk split angle
-                brRot += 137.5
+            #rotate trunk split angle
+            #brRot += 137.5
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
@@ -804,6 +811,9 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             if n == 0:
                 trimNum = int(baseSize * (len(tVals) + 1))
                 tVals = tVals[trimNum:]
+            
+            #if n > 0:
+            #    tVals = [t * .8 + .2 for t in tVals]
             
             #grow branches in rings
             if (n == 0) and (nrings > 0):
@@ -859,6 +869,7 @@ def addTree(props):
     branchDist = props.branchDist
     nrings = props.nrings
     baseSize = props.baseSize
+    splitHeight = props.splitHeight
     splitBias = props.splitBias
     ratio = props.ratio
     minRadius = props.minRadius
@@ -1031,7 +1042,7 @@ def addTree(props):
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, 
-                                                  branchDist, length, splitByLen, closeTip, nrings, splitBias)
+                                                  branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight)
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here
