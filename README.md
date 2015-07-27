@@ -15,7 +15,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
 * Option to grow branches in rings, like pine trees
 * Control the shape of secondary branch split levels
-* Minimum branch radius to prevent needle-thin branches, taper removed
+* Minimum branch radius to prevent needle-thin branches
 * Close tip for branch radius
 * Option to make number of splits proportional to branch length
 * Root flare to make trunk wider at base
