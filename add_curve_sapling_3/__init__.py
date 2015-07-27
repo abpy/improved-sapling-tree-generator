@@ -131,8 +131,6 @@ class ImportData(bpy.types.Operator):
         if type(settings['attractUp']) == float:
             atr = settings['attractUp']
             settings['attractUp'] = [0, 0, atr, atr]
-        #use old taper:
-        settings['trunkTaper'] = settings['taper'][0]
             
         # Set the flag to use the settings
         useSet = True
@@ -316,11 +314,12 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=[1, 1, 1, 1],
         size=4, update=update_tree)
-    trunkTaper = FloatProperty(name='Trunk Taper',
-        description='The fraction of tapering',
+    radiusTweak = FloatVectorProperty(name='Tweak Radius',
+        description='multiply radius by this factor',
         min=0.0,
         max=1.0,
-        default=1.0, update=update_tree)
+        default=[1, 1, 1, 1],
+        size=4, update=update_tree)                 
     ratioPower = FloatProperty(name='Branch Radius Ratio',
         description=('Power which defines the radius of a branch compared to '
         'the radius of the branch it grew from (RatioPower)'),
@@ -502,16 +501,27 @@ class AddTree(bpy.types.Operator):
         elif self.chooseSet == '1':
             box = layout.box()
             box.label("Branch Radius:")
+            
+            row = box.row()
+            row.prop(self, 'bevel')
+            row.prop(self, 'bevelRes')
+            
             box.prop(self, 'ratio')
             row = box.row()
             row.prop(self, 'scale0')
             row.prop(self, 'scaleV0')
+            box.prop(self, 'ratioPower')
             
             box.prop(self, 'minRadius')
             box.prop(self, 'closeTip')
-            box.prop(self, 'trunkTaper')
-            box.prop(self, 'ratioPower')
             box.prop(self, 'rootFlare')
+            box.prop(self, 'trunkTaper')
+            
+            split = box.split()
+            col = split.column()
+            col.prop(self, 'taper')
+            col = split.column()
+            col.prop(self, 'radiusTweak')
 
         elif self.chooseSet == '2':
             box = layout.box()

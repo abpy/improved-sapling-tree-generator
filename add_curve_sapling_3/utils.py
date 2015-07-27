@@ -247,6 +247,14 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     # First find the current direction of the stem
     dir = stem.quat()
     
+    #horz
+#    if (n == 1) and (kp > 0):
+#        p = stem.p.co.copy()
+#        d = atan2(p[0], -p[1]) + 2 * pi
+#        edir = dir.to_euler('XYZ', Euler((0, 0, 0), 'XYZ'))
+#        dirv = Euler((edir[0], edir[1], d), 'XYZ')
+#        dir = dirv.to_quaternion()
+    
     # If the stem splits, we need to add new splines etc
     if numSplit > 0:
         # Get the curve data
@@ -618,7 +626,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV,
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, oldRotate, ratioPower, resU,
-                    rotate, rotateV, scaleVal, shape, storeN, taper, vertAtt, shapeS, minRadius):
+                    rotate, rotateV, scaleVal, shape, storeN, taper, vertAtt, shapeS, minRadius, radiusTweak):
     for p in childP:
         # Add a spline and set the coordinate of the first point.
         newSpline = cu.splines.new('BEZIER')
@@ -668,12 +676,15 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
 
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
         branchL = max(branchL, 0.0)
+        
         # Determine the starting and ending radii of the stem using the tapering of the stem
         #tentative fix for lengh error
         try:
-            startRad = min(p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower), p.radiusPar[1])
+            #startRad = min(p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower), p.radiusPar[1])
+            startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
         except TypeError:
             startRad = p.radiusPar[1]
+            
         endRad = startRad * (1 - taper[n])
         startRad = max(startRad, minRadius)
         endRad = max(endRad, minRadius)
@@ -740,12 +751,13 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             else:
                 kp = 1.0
             
-            # not working yet
+            # not quite working yet
             #split bias
             splitValue = segSplits[n]
-            splitValue = ((splitBias * kp) - (.5 * splitBias)) + splitValue
-            splitValue = max(splitValue, 0.0)
-            #splitValue = min(splitValue, 1.0)
+            if n == 0:
+                splitValue = ((splitBias * kp) - (.5 * splitBias)) + splitValue
+                splitValue = max(splitValue, 0.0)
+                #splitValue = min(splitValue, 1.0)
             
             # For each of the splines in this list set the number of splits and then grow it
             for spl in tempList:
@@ -876,7 +888,7 @@ def addTree(props):
     closeTip = props.closeTip
     rootFlare = props.rootFlare
     taper = props.taper#
-    trunkTaper = props.trunkTaper
+    radiusTweak = props.radiusTweak
     ratioPower = props.ratioPower#
     downAngle = toRad(props.downAngle)#
     downAngleV = toRad(props.downAngleV)#
@@ -905,9 +917,6 @@ def addTree(props):
     armAnim = props.armAnim
     
     leafObj = None
-    
-    #taper
-    taper[0] = trunkTaper
     
     # Some effects can be turned ON and OFF, the necessary variables are changed here
     if not props.bevel:
@@ -1010,7 +1019,7 @@ def addTree(props):
             vertAtt = fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
                                       curveRes, curveV, downAngle, downAngleV, leafDist, leaves, length, lengthV,
                                       levels, n, oldRotate, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
-                                      taper, vertAtt, shapeS, minRadius)
+                                      taper, vertAtt, shapeS, minRadius, radiusTweak)
 
         childP = []
         # Now grow each of the stems in the list of those to be extended
