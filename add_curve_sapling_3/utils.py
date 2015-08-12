@@ -794,8 +794,12 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 elif (n == 0) and (k == int((curveRes[n]-1) * splitHeight) + 1) and (splitVal > 0): #allways split at splitHeight
                     numSplit = 1
                 else:
-                    if (n == 1) and splitByLen:
-                        L = ((spl.segL * curveRes[n]) / scaleVal) / length[n]
+                    if (n >= 1) and splitByLen:
+                        L = ((spl.segL * curveRes[n]) / scaleVal) # / length[n]
+                        lf = 1
+                        for l in length[:n+1]:
+                            lf *= l
+                        L = L / lf
                         numSplit = splits2(splitVal * L)
                     else:
                         numSplit = splits2(splitVal)
