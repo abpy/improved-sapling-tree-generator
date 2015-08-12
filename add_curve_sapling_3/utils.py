@@ -230,9 +230,18 @@ def interpStem(stem,tVals,lPar,parRad):
 def toRad(list):
     return [radians(a) for a in list]
 
+def anglemean(a1, a2, fac):
+    x1 = sin(a1)
+    y1 = cos(a1)
+    x2 = sin(a2)
+    y2 = cos(a2)
+    x = x1 + (x2 - x1) * fac
+    y = y1 + (y2 - y1) * fac
+    return atan2(x, y)
+
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip, kp, brRot, splitHeight):
+def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip, kp, splitHeight, outAtt):
     
     #curv at base
     sCurv = stem.curv
@@ -247,13 +256,14 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     # First find the current direction of the stem
     dir = stem.quat()
     
-    #horz
-#    if (n == 1) and (kp > 0):
-#        p = stem.p.co.copy()
-#        d = atan2(p[0], -p[1]) + 2 * pi
-#        edir = dir.to_euler('XYZ', Euler((0, 0, 0), 'XYZ'))
-#        dirv = Euler((edir[0], edir[1], d), 'XYZ')
-#        dir = dirv.to_quaternion()
+    #outward attraction
+    if (kp > 0) and (outAtt > 0):
+        p = stem.p.co.copy()
+        d = atan2(p[0], -p[1]) + 2 * pi
+        edir = dir.to_euler('XYZ', Euler((0, 0, d), 'XYZ'))
+        d = anglemean(edir[2], d, (kp * outAtt))
+        dirv = Euler((edir[0], edir[1], d), 'XYZ')
+        dir = dirv.to_quaternion()
     
     # If the stem splits, we need to add new splines etc
     if numSplit > 0:
@@ -263,7 +273,6 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
 
         #calc branchRotMat
         branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
-        #branchRotMat = Matrix.Rotation(radians(brRot),3,'Z')
         
         # Now for each split add the new spline and adjust the growth direction
         for i in range(numSplit):
@@ -317,7 +326,9 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
             # If this isn't the last point on a stem, then we need to add it to the list of stems to continue growing
             if stem.seg != stem.segMax:
                 #splineList.append(stemSpline(newSpline,stem.curv-angle/(stem.segMax-stem.seg),stem.curvV,stem.seg+1,stem.segMax,stem.segL,stem.children,stem.radS,stem.radE,len(cu.splines)-1))
-                splineList.append(stemSpline(newSpline,stem.curv,stem.curvV,stem.seg+1,stem.segMax,stem.segL,stem.children,stem.radS,stem.radE,len(cu.splines)-1))
+                nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.seg+1,stem.segMax,stem.segL,stem.children,stem.radS,stem.radE,len(cu.splines)-1)
+                nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
+                splineList.append(nstem)
                 splineToBone.append('bone'+(str(stem.splN)).rjust(3,'0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3,'0'))
                 
         # The original spline also needs to keep growing so adjust its direction too
@@ -339,6 +350,9 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
             dirVec.rotate(spreadMat)
         
         dirVec.rotate(dir)
+        
+        stem.splitlast = 1#numSplit #keep track of numSplit for next stem
+        
     else:
         # If there are no splits then generate the growth direction without accounting for spreading of stems
         dirVec = zAxis.copy()
@@ -350,6 +364,8 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         dirVec.rotate(curveVarMat)
         
         dirVec.rotate(dir)
+        
+        stem.splitlast = 0#numSplit #keep track of numSplit for next stem
         
     upRotAxis = xAxis.copy()
     upRotAxis.rotate(dirVec.to_track_quat('Z','Y'))
@@ -707,7 +723,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     deleteSpline, forceSprout, handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight):
+                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight, attractOut):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -739,7 +755,6 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
         # Initialise the spline list for those contained in the current level of branching
         splineList = [st]
         # For each of the segments of the stem which must be grown we have to add to each spline in splineList
-        brRot = 0.0
         for k in range(curveRes[n]):
             # Make a copy of the current list to avoid continually adding to the list we're iterating over
             tempList = splineList[:]
@@ -761,18 +776,29 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             
             # For each of the splines in this list set the number of splits and then grow it
             for spl in tempList:
+                
+                #adjust numSplit
+                lastsplit = getattr(spl, 'splitlast', 0)
+                splitVal = splitValue
+                if lastsplit == 0:
+                    splitVal = splitValue * 1.33
+                elif lastsplit == 1:
+                    splitVal = splitValue * splitValue
+                
                 if k == 0:
                     numSplit = 0
                 elif (n == 0) and (k < ((curveRes[n]-1) * splitHeight)) and (k != 1):
                     numSplit = 0
                 elif (k == 1) and (n == 0):
                     numSplit = baseSplits
+                elif (n == 0) and (k == int((curveRes[n]-1) * splitHeight) + 1) and (splitVal > 0): #allways split at splitHeight
+                    numSplit = 1
                 else:
                     if (n == 1) and splitByLen:
                         L = ((spl.segL * curveRes[n]) / scaleVal) / length[n]
-                        numSplit = splits(splitValue * L)
+                        numSplit = splits2(splitVal * L)
                     else:
-                        numSplit = splits(splitValue)
+                        numSplit = splits2(splitVal)
                         
                 if (k == int(curveRes[n] / 2 + 0.5)) and (curveBack[n] != 0):
                     #old = -2 * curve[n] / curveRes[n] + 2 * curveBack[n] / curveRes[n]
@@ -780,10 +806,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     #spl.curvAdd(new)
                     spl.curv += -4 * (curveBack[n] / curveRes[n])
                 
-                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, brRot, splitHeight)  # Add proper refs for radius and attractUp
-            
-            #rotate trunk split angle
-            #brRot += 137.5
+                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, splitHeight, attractOut[n])
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
@@ -876,6 +899,7 @@ def addTree(props):
     scale = props.scale#
     scaleV = props.scaleV#
     attractUp = props.attractUp#
+    attractOut = props.attractOut
     shape = int(props.shape)#
     shapeS = int(props.shapeS)#
     branchDist = props.branchDist
@@ -1051,7 +1075,7 @@ def addTree(props):
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, 
-                                                  branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight)
+                                                  branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight, attractOut)
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here

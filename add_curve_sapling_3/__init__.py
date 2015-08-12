@@ -38,7 +38,8 @@ import bpy
 import time
 import os
 
-#from utils import *
+#import cProfile
+
 from mathutils import *
 from math import pi, sin, degrees, radians, atan2, copysign
 from random import random, uniform, seed, choice, getstate, setstate
@@ -46,7 +47,6 @@ from bpy.props import *
 
 from add_curve_sapling_3.utils import *
 
-#global splitError
 useSet = False
 
 shapeList = [('0', 'Conical (0)', 'Shape = 0'),
@@ -260,6 +260,12 @@ class AddTree(bpy.types.Operator):
     attractUp = FloatVectorProperty(name='Vertical Attraction',
         description='Branch upward attraction',
         default=[0, 0, 0, 0],
+        size=4, update=update_tree)
+    attractOut = FloatVectorProperty(name='Outward Attraction',
+        description='Branch outward attraction',
+        default=[0, 0, 0, 0],
+        min=0.0,
+        max=1.0,
         size=4, update=update_tree)
     shape = EnumProperty(name='Shape',
         description='The overall shape of the tree (Shape)',
@@ -515,7 +521,7 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'minRadius')
             box.prop(self, 'closeTip')
             box.prop(self, 'rootFlare')
-            box.prop(self, 'trunkTaper')
+            #box.prop(self, 'trunkTaper')
             
             split = box.split()
             col = split.column()
@@ -539,6 +545,7 @@ class AddTree(bpy.types.Operator):
             col.prop(self, 'branches')
             col.prop(self, 'splitAngle')
             col.prop(self, 'rotate')
+            col.prop(self, 'attractOut')
             
             col = split.column()
             col.prop(self, 'segSplits')
@@ -627,6 +634,7 @@ class AddTree(bpy.types.Operator):
         if not self.do_update:
             return {'PASS_THROUGH'}
         addTree(self)
+        #cProfile.runctx("addTree(self)", globals(), locals())
         print("Tree creation in %0.1fs" %(time.time()-start_time))
         return {'FINISHED'}
     
