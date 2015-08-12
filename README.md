@@ -10,6 +10,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Curvature variation now bends branches in multiple directions and increases along length of branch
 * Auto curve handles is now enabled for branch splits
 * fixed how child branch start points are calculated
+* branch length variation now works in the range 0 - 1 and no longer produces errors
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
