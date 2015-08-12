@@ -20,7 +20,8 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Option to make number of splits proportional to branch length
 * Root flare to make trunk wider at base
 * Leaf rotation can now use negetive values like branches do
-* vertical atraction can now be set individually for each split level
-* experimental 'split bias' for trunk splits to put more splits at top or bottom of tree
-* split start height for longer trunk before splitting
+* Vertical atraction can now be set individually for each split level
+* Experimental 'split bias' for trunk splits to put more splits at top or bottom of tree
+* Split start height for longer trunk before splitting
+* Outward attraction to make branches point out from the center of the tree
 
