@@ -619,7 +619,7 @@ def create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape
 
 
 def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU, scale0, scaleV0,
-                    scaleVal, taper, vertAtt, minRadius, rootFlare):
+                    scaleVal, taper, minRadius, rootFlare):
     newSpline = cu.splines.new('BEZIER')
     cu.resolution_u = resU
     newPoint = newSpline.bezier_points[-1]
@@ -627,7 +627,8 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
     newPoint.handle_right = Vector((0, 0, 1))
     newPoint.handle_left = Vector((0, 0, -1))
     # (newPoint.handle_right_type,newPoint.handle_left_type) = ('VECTOR','VECTOR')
-    branchL = (scaleVal) * (length[0] + uniform(-lengthV[0], lengthV[0]))
+    #branchL = (scaleVal) * (length[0] + uniform(-lengthV[0], lengthV[0]))
+    branchL = (scaleVal) * (length[0] * uniform(1 - lengthV[0], 1 + lengthV[0]))
     childStems = branches[1]
     startRad = branchL * ratio * (scale0 + uniform(-scaleV0, scaleV0))
     endRad = startRad * (1 - taper[0])
@@ -637,12 +638,11 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
     addstem(
         stemSpline(newSpline, curve[0] / curveRes[0], curveV[0] / curveRes[0], 0, curveRes[0], branchL / curveRes[0],
                    childStems, startRad, endRad, 0))
-    return vertAtt
 
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV,
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, oldRotate, ratioPower, resU,
-                    rotate, rotateV, scaleVal, shape, storeN, taper, vertAtt, shapeS, minRadius, radiusTweak):
+                    rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak):
     for p in childP:
         # Add a spline and set the coordinate of the first point.
         newSpline = cu.splines.new('BEZIER')
@@ -672,15 +672,15 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         tempPos.rotate(p.quat)
         newPoint.handle_right = p.co + tempPos
         if n == 1:
-            # and a special formula is used to find branch length and the number of child stems.
+            # a special formula is used to find branch length and the number of child stems.
             # This is also here that the shape is used.
-            lMax = length[1] + uniform(-lengthV[1], lengthV[1])
-            lMax += copysign(1e-6, lMax)  # Move away from zero to avoid div by zero
-            branchL = p.lengthPar * lMax * shapeRatio(shape,
-                                                      (p.lengthPar - p.offset) / (p.lengthPar - baseSize * scaleVal))
+            #lMax = length[1] + uniform(-lengthV[1], lengthV[1])
+            lMax = length[1] * uniform(1 - lengthV[1], 1 + lengthV[1])
+            branchL = p.lengthPar * lMax * shapeRatio(shape, (p.lengthPar - p.offset) / (p.lengthPar - baseSize * scaleVal))
             childStems = branches[2] * (0.2 + 0.8 * (branchL / p.lengthPar) / lMax)
         else:
-            branchL = p.lengthPar * (length[n] + uniform(-lengthV[n], lengthV[n])) * shapeRatio(shapeS, (p.lengthPar - p.offset) / p.lengthPar)
+            lMax = length[n] * uniform(1 - lengthV[n], 1 + lengthV[n])
+            branchL = p.lengthPar * lMax * shapeRatio(shapeS, (p.lengthPar - p.offset) / p.lengthPar)
             childStems = branches[min(3, n + 1)] * (1.0 - 0.5 * p.offset / p.lengthPar)
 
         if (storeN == levels - 1):
@@ -691,32 +691,23 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                 childStems = leaves * shapeRatio(leafDist, p.offset / p.lengthPar)
 
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
-        branchL = max(branchL, 0.0)
         
         # Determine the starting and ending radii of the stem using the tapering of the stem
-        #tentative fix for lengh error
-        try:
-            #startRad = min(p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower), p.radiusPar[1])
-            startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
-        except TypeError:
-            startRad = p.radiusPar[1]
-            
+        startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
         endRad = startRad * (1 - taper[n])
         startRad = max(startRad, minRadius)
         endRad = max(endRad, minRadius)
         newPoint.radius = startRad
         
-        # If curveBack is used then the curviness of the stem is different for the first half
-        if curveBack[n] == 0:
-            curveVal = curve[n] / curveRes[n]
-        else:
-            curveVal = curve[n] / curveRes[n]#2 * 
+        # stem curvature
+        curveVal = curve[n] / curveRes[n]
+        curveVar = curveV[n] / curveRes[n]
+        
         # Add the new stem to list of stems to grow and define which bone it will be parented to
         addstem(
-            stemSpline(newSpline, curveVal, curveV[n] / curveRes[n], 0, curveRes[n], branchL / curveRes[n], childStems,
+            stemSpline(newSpline, curveVal, curveVar, 0, curveRes[n], branchL / curveRes[n], childStems,
                        startRad, endRad, len(cu.splines) - 1))
         addsplinetobone(p.parBone)
-    return vertAtt
 
 
 def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, currentScale, curve, curveBack, curveRes,
@@ -1037,17 +1028,17 @@ def addTree(props):
         splitError = 0.0
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
-            vertAtt = kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU,
-                                      scale0, scaleV0, scaleVal, taper, vertAtt, minRadius, rootFlare)
+            kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU,
+                                      scale0, scaleV0, scaleVal, taper, minRadius, rootFlare)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:
             # Store the old rotation to allow new stems to be rotated away from the previous one.
             oldRotate = 0
             # For each of the points defined in the list of stem starting points we need to grow a stem.
-            vertAtt = fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
+            fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
                                       curveRes, curveV, downAngle, downAngleV, leafDist, leaves, length, lengthV,
                                       levels, n, oldRotate, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
-                                      taper, vertAtt, shapeS, minRadius, radiusTweak)
+                                      taper, shapeS, minRadius, radiusTweak)
 
         childP = []
         # Now grow each of the stems in the list of those to be extended

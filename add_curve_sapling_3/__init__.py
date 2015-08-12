@@ -205,6 +205,7 @@ class AddTree(bpy.types.Operator):
     lengthV = FloatVectorProperty(name='Length Variation',
         description='The relative length variations of each level (nLengthV)',
         min=0.0,
+        max=1.0,
         default=[0, 0, 0, 0],
         size=4, update=update_tree)
     branches = IntVectorProperty(name='Branches',
