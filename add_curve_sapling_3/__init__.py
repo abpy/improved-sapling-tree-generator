@@ -25,7 +25,6 @@ bl_info = {
     "description": ("Adds a parametric tree. The method is presented by "
     "Jason Weber & Joseph Penn in their paper 'Creation and Rendering of "
     "Realistic Trees'."),
-    #"warning": "length parameters may cause errors",  # used for warning icon and text in addons panel
     "category": "Add Curve"}
 
 if "bpy" in locals():
@@ -79,7 +78,13 @@ def getPresetpath():
         presetpath = os.path.join(p, 'addons', 'add_curve_sapling_3', 'presets')
         if os.path.exists(presetpath):
             break
-    return presetpath
+    #return presetpath
+    
+    # why not just do this
+    script_file = os.path.realpath(__file__)
+    directory = os.path.dirname(script_file)
+    directory = os.path.join(directory, "presets")
+    return directory
 
 
 class ExportData(bpy.types.Operator):
@@ -625,7 +630,6 @@ class AddTree(bpy.types.Operator):
         #bpy.ops.ImportData.filename = "quaking_aspen"
         # If we need to set the properties from a preset then do it here
         if useSet:
-            setattr(self, 'branchDist', 1.0)
             for a, b in settings.items():
                 setattr(self, a, b)
             if self.limitImport:
