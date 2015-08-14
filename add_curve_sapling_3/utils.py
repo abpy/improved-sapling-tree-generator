@@ -223,7 +223,7 @@ def interpStem(stem,tVals,lPar,parRad):
             coord = evalBez(points[index].co,points[index].handle_right,points[index+1].handle_left,points[index+1].co,tTemp)
             quat = (evalBezTan(points[index].co,points[index].handle_right,points[index+1].handle_left,points[index+1].co,tTemp)).to_track_quat('Z','Y')
             radius = (1-tTemp)*points[index].radius + tTemp*points[index+1].radius # Not sure if this is the parent radius at the child point or parent start radius
-            tempList.append(childPoint(coord,quat,(parRad, radius),t*lPar,lPar,'bone'+(str(stem.splN).rjust(3,'0'))+'.'+(str(index).rjust(3,'0'))))
+            tempList.append(childPoint(coord,quat,(parRad, radius),t,lPar,'bone'+(str(stem.splN).rjust(3,'0'))+'.'+(str(index).rjust(3,'0'))))
     return tempList
 
 # Convert a list of degrees to radians
@@ -627,7 +627,6 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
     newPoint.handle_right = Vector((0, 0, 1))
     newPoint.handle_left = Vector((0, 0, -1))
     # (newPoint.handle_right_type,newPoint.handle_left_type) = ('VECTOR','VECTOR')
-    #branchL = (scaleVal) * (length[0] + uniform(-lengthV[0], lengthV[0]))
     branchL = (scaleVal) * (length[0] * uniform(1 - lengthV[0], 1 + lengthV[0]))
     childStems = branches[1]
     startRad = branchL * ratio * (scale0 + uniform(-scaleV0, scaleV0))
@@ -652,9 +651,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         tempPos = zAxis.copy()
         # If the -ve flag for downAngle is used we need a special formula to find it
         if downAngleV[n] < 0.0:
-            downV = downAngleV[n] * (
-            1 - 2 * shapeRatio(0, (p.lengthPar - p.offset) / (p.lengthPar - baseSize * scaleVal)))
-            random()
+            downV = downAngleV[n] * (1 - 2 * (.2 + .8 * ((1 - p.offset) / (1 - baseSize))))
         # Otherwise just find a random value
         else:
             downV = uniform(-downAngleV[n], downAngleV[n])
@@ -674,21 +671,21 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         if n == 1:
             # a special formula is used to find branch length and the number of child stems.
             # This is also here that the shape is used.
-            #lMax = length[1] + uniform(-lengthV[1], lengthV[1])
             lMax = length[1] * uniform(1 - lengthV[1], 1 + lengthV[1])
-            branchL = p.lengthPar * lMax * shapeRatio(shape, (p.lengthPar - p.offset) / (p.lengthPar - baseSize * scaleVal))
+            #branchL = p.lengthPar * lMax * shapeRatio(shape, (p.lengthPar - p.offset) / (p.lengthPar - baseSize * scaleVal))
+            branchL = p.lengthPar * lMax * shapeRatio(shape, (1 - p.offset) / (1 - baseSize))
             childStems = branches[2] * (0.2 + 0.8 * (branchL / p.lengthPar) / lMax)
         else:
             lMax = length[n] * uniform(1 - lengthV[n], 1 + lengthV[n])
-            branchL = p.lengthPar * lMax * shapeRatio(shapeS, (p.lengthPar - p.offset) / p.lengthPar)
-            childStems = branches[min(3, n + 1)] * (1.0 - 0.5 * p.offset / p.lengthPar)
+            branchL = p.lengthPar * lMax * shapeRatio(shapeS, (1 - p.offset))
+            childStems = branches[min(3, n + 1)] * (1.0 - 0.5 * p.offset)
 
         if (storeN == levels - 1):
             # If this is the last level before leaves then we need to generate the child points differently
             if leaves < 0:
                 childStems = False
             else:
-                childStems = leaves * shapeRatio(leafDist, p.offset / p.lengthPar)
+                childStems = leaves * shapeRatio(leafDist, p.offset)
 
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
         
