@@ -64,16 +64,6 @@ class stemSpline:
     def updateEnd(self):
         self.p = self.spline.bezier_points[-1]
         self.seg += 1
-    # Determine the spread angle for a split
-    def spreadAng(self):
-        return 0.0#radians(choice([-1,1])*(20 + 0.75*(30 + abs(degrees(self.dec()) - 90))*random()**2))
-    # Determine the splitting angle for a split
-    #vertical spliting
-    def splitAngle(self,splitAng,splitAngV):
-        return max(0,splitAng+uniform(-splitAngV,splitAngV)) #-self.dec()
-    # This is used to change the the curvature per segment of the spline
-    def curvAdd(self,curvD):
-        self.curv += curvD
 
 # This class contains the data for a point where a new branch will sprout
 class childPoint:
@@ -132,41 +122,21 @@ def splits2(n):
     else:
         return 0
 
+def splits3(n):
+    ni = int(n)
+    nf = n - int(n)
+    r = random()
+    if r < nf:
+        return ni + 1
+    else:
+        return ni + 0
+
 # Determine the declination from a given quaternion
 def declination(quat):
     tempVec = zAxis.copy()
     tempVec.rotate(quat)
     tempVec.normalize()
     return degrees(acos(tempVec.z))
-
-# Determine the length of a child stem
-def lengthChild(lMax,offset,lPar,shape=False,lBase=None):
-    if shape:
-        return lPar*lMax*shapeRatio(shape,(lPar - offset) / max((lPar - lBase), 1e-6))
-    else:
-        return lMax*(lPar - 0.6*offset)
-
-# Find the actual downAngle taking into account the special case
-def downAngle(downAng,downAngV,lPar=None,offset=None,lBase=None):
-    if downAngV < 0:
-        return downAng + (uniform(-downAngV,downAngV)*(1 - 2*shapeRatio(0,(lPar - offset) / max((lPar - lBase), 1e-6))))
-    else:
-        return downAng + uniform(-downAngV,downAngV)
-
-# Returns the rotation matrix equivalent to i rotations by 2*pi/(n+1)
-def splitRotMat(n,i):
-    return Matrix.Rotation(2*i*pi/(n+1),3,'Z')
-
-# Returns the split angle
-def angleSplit(splitAng,splitAngV,quat):
-    return max(0,splitAng+uniform(-splitAngV,splitAngV)-declination(quat))
-
-# Returns number of stems a stem will sprout
-def stems(stemsMax,lPar,offset,lChild=False,lChildMax=None):
-    if lChild:
-        return stemsMax*(0.2 + 0.8*(lChild/lPar)/lChildMax)
-    else:
-        return stemsMax*(1.0 - 0.5*offset/lPar)
 
 # Returns the spreading angle
 #horizontal spliting
@@ -248,10 +218,12 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     if (n == 0) and (kp <= splitHeight):
         sCurv = 0.0
     
-    angle = stem.splitAngle(splitAng,splitAngV)
+    angle = splitAng + uniform(-splitAngV, splitAngV)
     spreadangle = spreadAng(splitAng, splitAngV)
     curveangle = sCurv + (uniform(-stem.curvV,stem.curvV) * kp)
     curveVar = uniform(-stem.curvV,stem.curvV) * kp
+    
+    curveVarMat = Matrix.Rotation(curveVar,3,'Y')
     
     # First find the current direction of the stem
     dir = stem.quat()
@@ -287,15 +259,13 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
             dirVec.rotate(divRotMat)
             
             #horizontal curvature variation
-            curveVarMat = Matrix.Rotation(curveVar,3,'Y')
             dirVec.rotate(curveVarMat)
             
             if n == 0: #Special case for trunk splits
                 dirVec.rotate(branchRotMat)
-            
-            #dirVec.rotate(splitRotMat(numSplit,i+1))
-            
-            #dirVec.rotate(dir)
+                
+                ang = pi - ((2 * pi) / (numSplit + 1)) * (i+1)
+                dirVec.rotate(Matrix.Rotation(ang, 3, 'Z'))
 
             # Spread the stem out in a random fashion
             spreadMat = Matrix.Rotation(spreadangle,3,'Y')
@@ -337,12 +307,10 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         dirVec.rotate(divRotMat)
         
         #horizontal curvature variation
-        curveVarMat = Matrix.Rotation(curveVar,3,'Y')
         dirVec.rotate(curveVarMat)
         
         if n == 0: #Special case for trunk splits
             dirVec.rotate(branchRotMat)
-        #dirVec.rotate(dir)
         
         #spread
         spreadMat = Matrix.Rotation(-spreadangle,3,'Y')
@@ -360,7 +328,6 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         dirVec.rotate(divRotMat)
         
         #horizontal curvature variation
-        curveVarMat = Matrix.Rotation(curveVar,3,'Y')
         dirVec.rotate(curveVarMat)
         
         dirVec.rotate(dir)
