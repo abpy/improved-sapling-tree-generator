@@ -90,9 +90,9 @@ def shapeRatio(shape,ratio,pruneWidthPeak=0.0,prunePowerHigh=0.0,prunePowerLow=0
         return 0.5 + 0.5*ratio
     elif shape == 5:
         if ratio <= 0.7:
-            return ratio/0.7
+            return 0.05 + 0.95 * ratio/0.7
         else:
-            return (1.0 - ratio)/0.3
+            return 0.05 + 0.95 * (1.0 - ratio)/0.3
     elif shape == 6:
         return 1.0 - 0.8*ratio
     elif shape == 7:
@@ -174,26 +174,31 @@ def findChildPoints(stemList,numChild):
 # Find the coordinates, quaternion and radius for each t on the stem
 def interpStem(stem,tVals,lPar,parRad):
     points = stem.spline.bezier_points
-    numPoints = len(stem.spline.bezier_points)
+    numPoints = len(points)
     checkVal = (stem.segMax - (numPoints - 1)) / stem.segMax
     # Loop through all the parametric values to be determined
     tempList = deque()
     for t in tVals:
-        if (t >= checkVal) and (t < 1.0):
+        if t == 1.0:
+            index = numPoints-2
+            coord = points[-1].co
+            quat = (points[-1].handle_right - points[-1].co).to_track_quat('Z','Y')
+            radius = points[-1].radius
+            
+            tempList.append(childPoint(coord,quat,(parRad, radius),t,lPar,'bone'+(str(stem.splN).rjust(3,'0'))+'.'+(str(index).rjust(3,'0'))))
+            
+        elif (t >= checkVal) and (t < 1.0):
             scaledT = (t - checkVal)  / ((1 - checkVal) + .0001)
             length = (numPoints-1)*scaledT
             index = int(length)
-#            if scaledT == 1.0:
-#                pass
-#                coord = points[-1].co
-#                quat = (points[-1].handle_right - points[-1].co).to_track_quat('Z','Y')
-#                radius = parRad#points[-2].radius
-#            else:
+            
             tTemp = length - index
             coord = evalBez(points[index].co,points[index].handle_right,points[index+1].handle_left,points[index+1].co,tTemp)
             quat = (evalBezTan(points[index].co,points[index].handle_right,points[index+1].handle_left,points[index+1].co,tTemp)).to_track_quat('Z','Y')
             radius = (1-tTemp)*points[index].radius + tTemp*points[index+1].radius # Not sure if this is the parent radius at the child point or parent start radius
+            
             tempList.append(childPoint(coord,quat,(parRad, radius),t,lPar,'bone'+(str(stem.splN).rjust(3,'0'))+'.'+(str(index).rjust(3,'0'))))
+            
     return tempList
 
 # Convert a list of degrees to radians
@@ -376,34 +381,31 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
     vertsList = []
     facesList = []
     
+    if leaves < 0:
+        rotMat = Matrix.Rotation(oldRot,3,'Y')
+    else:
+        rotMat = Matrix.Rotation(oldRot,3,'Z')
+    
     # If the -ve flag for rotate is used we need to find which side of the stem the last child point was and then grow in the opposite direction.
     if rotate < 0.0:
         oldRot = -copysign(rotate + uniform(-rotateV, rotateV), oldRot)
-    # Otherwise just generate a random number in the specified range
     else:
-        oldRot += rotate + uniform(-rotateV, rotateV)
+        # If the special -ve flag for leaves is used we need a different rotation of the leaf geometry
+        if leaves == -1:
+            rotMat = Matrix.Rotation(0,3,'Y')
+        elif leaves < -1:
+            oldRot += rotate / (-leaves - 1)
+        else:
+            oldRot += rotate + uniform(-rotateV, rotateV)
 
-    # If the special -ve flag is used we need a different rotation of the leaf geometry
-    if leaves < 0:
-        rotMat = Matrix.Rotation(oldRot,3,'Y')
-        oldRot += rotate/abs(leaves)
-    else:
-        #oldRot += rotate+uniform(-rotateV,rotateV)
+    if leaves >= 0:
         downRotMat = Matrix.Rotation(downAngle+uniform(-downAngleV,downAngleV),3,'X')
-        rotMat = Matrix.Rotation(oldRot,3,'Z')
-
-    normal = yAxis.copy()
-    #dirVec = zAxis.copy()
-    orientationVec = zAxis.copy()
 
     # If the bending of the leaves is used we need to rotate them differently
     if (bend != 0.0) and (leaves >= 0):
-#        normal.rotate(downRotMat)
-#        orientationVec.rotate(downRotMat)
-#
-#        normal.rotate(rotMat)
-#        orientationVec.rotate(rotMat)
-
+        normal = yAxis.copy()
+        orientationVec = zAxis.copy()
+        
         normal.rotate(quat)
         orientationVec.rotate(quat)
 
@@ -800,7 +802,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             # If leaves is -ve then we need to make sure the only point which sprouts is the end of the spline
             # if not st.children:
             if not st.children:
-                tVals = [0.9]
+                tVals = [1.0] #[0.9]
             # If this is the trunk then we need to remove some of the points because of baseSize
             if n == 0:
                 trimNum = int(baseSize * (len(tVals) + 1))
@@ -1042,19 +1044,22 @@ def addTree(props):
             oldRot = 0.0
             n = min(3,n+1)
             # For each of the child points we add leaves
+            leafP = []
             for cp in childP:
                 # If the special flag is set then we need to add several leaves at the same location
                 if leaves < 0:
-                    oldRot = -rotate[n]/2
+                    oldRot = -rotate[n] / 2
                     for g in range(abs(leaves)):
                         (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,bend,leaves, leafShape)
                         leafVerts.extend(vertTemp)
                         leafFaces.extend(faceTemp)
+                        leafP.append(cp)
                 # Otherwise just add the leaves like splines.
                 else:
                     (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,bend,leaves, leafShape)
                     leafVerts.extend(vertTemp)
                     leafFaces.extend(faceTemp)
+                    leafP.append(cp)
             # Create the leaf mesh and object, add geometry using from_pydata, edges are currently added by validating the mesh which isn't great
             leafMesh = bpy.data.meshes.new('leaves')
             leafObj = bpy.data.objects.new('leaves',leafMesh)
@@ -1104,6 +1109,6 @@ def addTree(props):
     # If we need and armature we add it
     if useArm:
         # Create the armature and objects
-        create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape, leaves, levelCount, splineToBone,
+        create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape, leaves, levelCount, splineToBone,
                         treeOb, windGust, windSpeed)
     #print(time.time()-startTime)
