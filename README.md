@@ -11,6 +11,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Auto curve handles is now enabled for branch splits
 * fixed how child branch start points are calculated
 * branch length variation now works in the range 0 - 1 and no longer produces errors
+* Leaf orientation is much improved, leaves now face upwards and outwards and have correct normals
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
@@ -25,4 +26,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Experimental 'split bias' for trunk splits to put more splits at top or bottom of tree
 * Split start height for longer trunk before splitting
 * Outward attraction to make branches point out from the center of the tree
+* added 'horizontal leaves' and 'leaf angle' to control how leaves are rotated
 
+######notes
+'leaf bend' seams to be broken and probably shouldn't be used, it may be removed soon
