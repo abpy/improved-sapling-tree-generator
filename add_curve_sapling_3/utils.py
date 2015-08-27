@@ -367,13 +367,14 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     stem.updateEnd()
     #return splineList
 
-def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,rotateV,oldRot,bend,leaves, leafShape):
+def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,rotateV,oldRot,bend,leaves, leafShape, leafangle, horzLeaves):
     if leafShape == 'hex':
         verts = [Vector((0,0,0)),Vector((0.5,0,1/3)),Vector((0.5,0,2/3)),Vector((0,0,1)),Vector((-0.5,0,2/3)),Vector((-0.5,0,1/3))]
         edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,3]]
         faces = [[0,1,2,3],[0,3,4,5]]
     elif leafShape == 'rect':
-        verts = [Vector((1,0,0)),Vector((1,0,1)),Vector((-1,0,1)),Vector((-1,0,0))]
+        #verts = [Vector((1,0,0)),Vector((1,0,1)),Vector((-1,0,1)),Vector((-1,0,0))]
+        verts = [Vector((.5,0,0)),Vector((.5,0,1)),Vector((-.5,0,1)),Vector((-.5,0,0))]
         edges = [[0,1],[1,2],[2,3],[3,0]]
         faces = [[0,1,2,3],]
     #faces = [[0,1,5],[1,2,4,5],[2,3,4]]
@@ -428,8 +429,19 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
         v.z *= leafScale
         v.x *= leafScaleX*leafScale
         
+        v.rotate(Euler((0, 0, radians(180))))
+        
+        #leafangle
+        v.rotate(Matrix.Rotation(radians(-leafangle), 3, 'X'))
+        
         if rotate < 0:
             v.rotate(Euler((0, 0, radians(90))))
+            if oldRot < 0:
+                v.rotate(Euler((0, 0, radians(180))))
+        
+        if (leaves > 0) and (rotate > 0) and horzLeaves:
+            nRotMat = Matrix.Rotation(-oldRot + rotate,3,'Z')
+            v.rotate(nRotMat)
 
         if leaves > 0:
             v.rotate(downRotMat)
@@ -654,7 +666,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             if leaves < 0:
                 childStems = False
             else:
-                childStems = leaves * shapeRatio(leafDist, p.offset)
+                childStems = leaves * shapeRatio(leafDist, (1 - p.offset))
 
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
         
@@ -891,6 +903,8 @@ def addTree(props):
     leafScaleX = props.leafScaleX#
     leafShape = props.leafShape
     bend = props.bend#
+    leafangle = props.leafangle
+    horzLeaves = props.horzLeaves
     leafDist = int(props.leafDist)#
     bevelRes = props.bevelRes#
     resU = props.resU#
@@ -1050,13 +1064,15 @@ def addTree(props):
                 if leaves < 0:
                     oldRot = -rotate[n] / 2
                     for g in range(abs(leaves)):
-                        (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,bend,leaves, leafShape)
+                        (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,
+                                                                 bend,leaves, leafShape, leafangle, horzLeaves)
                         leafVerts.extend(vertTemp)
                         leafFaces.extend(faceTemp)
                         leafP.append(cp)
                 # Otherwise just add the leaves like splines.
                 else:
-                    (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,bend,leaves, leafShape)
+                    (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,
+                                                             bend,leaves, leafShape, leafangle, horzLeaves)
                     leafVerts.extend(vertTemp)
                     leafFaces.extend(faceTemp)
                     leafP.append(cp)

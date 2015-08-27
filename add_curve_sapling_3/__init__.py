@@ -405,6 +405,12 @@ class AddTree(bpy.types.Operator):
         min=0.0,
         max=1.0,
         default=0.0, update=update_tree)
+    leafangle = FloatProperty(name='Leaf Angle',
+        description='Leaf vertical attraction',
+        default=0.0, update=update_tree)
+    horzLeaves = BoolProperty(name='Horizontal leaves',
+        description='Leaves face upwards',
+        default=True, update=update_tree)
     leafDist = EnumProperty(name='Leaf Distribution',
         description='The way leaves are distributed on branches',
         items=shapeList,
@@ -607,6 +613,10 @@ class AddTree(bpy.types.Operator):
             row.prop(self, 'leafScale')
             row.prop(self, 'leafScaleX')
             
+            box.prop(self, 'horzLeaves')
+            box.prop(self, 'leafangle')
+            
+            box.label(" ")
             box.prop(self, 'bend')
 
         elif self.chooseSet == '6':
