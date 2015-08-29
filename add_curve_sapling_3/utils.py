@@ -465,7 +465,7 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
     return vertsList,facesList,oldRot
 
 
-def create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape, leaves, levelCount, splineToBone,
+def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape, leaves, levelCount, splineToBone,
                     treeOb, windGust, windSpeed):
     arm = bpy.data.armatures.new('tree')
     armOb = bpy.data.objects.new('treeArm', arm)
@@ -588,7 +588,7 @@ def create_armature(armAnim, childP, cu, frameRate, leafMesh, leafObj, leafShape
         leafVertSize = 6
         if leafShape == 'rect':
             leafVertSize = 4
-        for i, cp in enumerate(childP):
+        for i, cp in enumerate(leafP):
             for v in leafMesh.vertices[leafVertSize * i:(leafVertSize * i + leafVertSize)]:
                 leafObj.vertex_groups[cp.parBone].add([v.index], 1.0, 'ADD')
 
@@ -777,7 +777,8 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     #old = -2 * curve[n] / curveRes[n] + 2 * curveBack[n] / curveRes[n]
                     #new = -2*curve[n]/curveRes[n] + 2*(curve[n] - 2*curveBack[n])/curveRes[n]
                     #spl.curvAdd(new)
-                    spl.curv += -4 * (curveBack[n] / curveRes[n])
+                    #spl.curv += -4 * (curveBack[n] / curveRes[n])
+                    spl.curv += 2 * (curveBack[n] / curveRes[n])
                 
                 growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, splitHeight, attractOut[n])
 
