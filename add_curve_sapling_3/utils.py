@@ -367,7 +367,7 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     stem.updateEnd()
     #return splineList
 
-def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,rotateV,oldRot,bend,leaves, leafShape, leafangle, horzLeaves):
+def genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,loc,quat,offset,index,downAngle,downAngleV,rotate,rotateV,oldRot,bend,leaves, leafShape, leafangle, horzLeaves):
     if leafShape == 'hex':
         verts = [Vector((0,0,0)),Vector((0.5,0,1/3)),Vector((0.5,0,2/3)),Vector((0,0,1)),Vector((-0.5,0,2/3)),Vector((-0.5,0,1/3))]
         edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,3]]
@@ -401,6 +401,14 @@ def genLeafMesh(leafScale,leafScaleX,loc,quat,index,downAngle,downAngleV,rotate,
 
     if leaves >= 0:
         downRotMat = Matrix.Rotation(downAngle+uniform(-downAngleV,downAngleV),3,'X')
+    
+    #leaf scale variation
+    if leafScaleT < 0:
+        leafScale = leafScale * (1 - (1 - offset) * -leafScaleT)
+    else:
+        leafScale = leafScale * (1 - offset * leafScaleT)
+        
+    leafScale = leafScale * uniform(1 - leafScaleV, 1 + leafScaleV)
 
     # If the bending of the leaves is used we need to rotate them differently
     if (bend != 0.0) and (leaves >= 0):
@@ -774,11 +782,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                         numSplit = splits2(splitVal)
                         
                 if (k == int(curveRes[n] / 2 + 0.5)) and (curveBack[n] != 0):
-                    #old = -2 * curve[n] / curveRes[n] + 2 * curveBack[n] / curveRes[n]
-                    #new = -2*curve[n]/curveRes[n] + 2*(curve[n] - 2*curveBack[n])/curveRes[n]
-                    #spl.curvAdd(new)
-                    #spl.curv += -4 * (curveBack[n] / curveRes[n])
-                    spl.curv += 2 * (curveBack[n] / curveRes[n])
+                    spl.curv += 2 * (curveBack[n] / curveRes[n]) #was -4 * 
                 
                 growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, splitHeight, attractOut[n])
 
@@ -902,6 +906,8 @@ def addTree(props):
     pruneRatio = props.pruneRatio#
     leafScale = props.leafScale#
     leafScaleX = props.leafScaleX#
+    leafScaleT = props.leafScaleT
+    leafScaleV = props.leafScaleV
     leafShape = props.leafShape
     bend = props.bend#
     leafangle = props.leafangle
@@ -1065,15 +1071,15 @@ def addTree(props):
                 if leaves < 0:
                     oldRot = -rotate[n] / 2
                     for g in range(abs(leaves)):
-                        (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,
-                                                                 bend,leaves, leafShape, leafangle, horzLeaves)
+                        (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,cp.co,cp.quat,cp.offset,
+                                                                 len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,bend,leaves, leafShape, leafangle, horzLeaves)
                         leafVerts.extend(vertTemp)
                         leafFaces.extend(faceTemp)
                         leafP.append(cp)
                 # Otherwise just add the leaves like splines.
                 else:
-                    (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,cp.co,cp.quat,len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,
-                                                             bend,leaves, leafShape, leafangle, horzLeaves)
+                    (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,cp.co,cp.quat,cp.offset,
+                                                             len(leafVerts),downAngle[n],downAngleV[n],rotate[n],rotateV[n],oldRot,bend,leaves, leafShape, leafangle, horzLeaves)
                     leafVerts.extend(vertTemp)
                     leafFaces.extend(faceTemp)
                     leafP.append(cp)

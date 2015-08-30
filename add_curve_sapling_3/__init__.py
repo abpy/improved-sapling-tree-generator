@@ -349,7 +349,7 @@ class AddTree(bpy.types.Operator):
     rotate = FloatVectorProperty(name='Rotate Angle',
         description=('The angle of a new branch around the one it grew from '
         '(nRotate)'),
-        default=[140, 140, 140, 77],
+        default=[137.5, 137.5, 137.5, 137.5],
         size=4, update=update_tree)
     rotateV = FloatVectorProperty(name='Rotate Angle Variation',
         description='Variation in the rotate angle (nRotateV)',
@@ -396,7 +396,17 @@ class AddTree(bpy.types.Operator):
         '(LeafScaleX)'),
         min=0.0,
         default=1.0, update=update_tree)
-    leafShape = leafDist = EnumProperty(name='Leaf Shape',
+    leafScaleT = FloatProperty(name='Leaf Scale Taper',
+        description='scale leaves toward the tip or base of the patent branch',
+        min = -1.0,
+        max = 1.0,
+        default=0.0, update=update_tree)
+    leafScaleV = FloatProperty(name='Leaf Scale Variation',
+        description='randomize leaf scale',
+        min = 0.0,
+        max = 1.0,
+        default=0.0, update=update_tree)
+    leafShape = EnumProperty(name='Leaf Shape',
         description='The shape of the leaves, rectangular are UV mapped',
         items=(('hex', 'Hexagonal', '0'), ('rect', 'Rectangular', '1')),
         default='hex', update=update_tree)
@@ -414,7 +424,7 @@ class AddTree(bpy.types.Operator):
     leafDist = EnumProperty(name='Leaf Distribution',
         description='The way leaves are distributed on branches',
         items=shapeList,
-        default='4', update=update_tree)
+        default='6', update=update_tree)
     bevelRes = IntProperty(name='Bevel Resolution',
         description='The bevel resolution of the curves',
         min=0,
@@ -510,8 +520,7 @@ class AddTree(bpy.types.Operator):
             row = box.row()
             row.prop(self, 'presetName')
             # Send the data dict and the file name to the exporter
-            row.operator('sapling.exportdata').data = repr([repr(data),
-                                                       self.presetName])
+            row.operator('sapling.exportdata').data = repr([repr(data),self.presetName])
             row = box.row()
             row.menu('sapling.presetmenu', text='Load Preset')
             row.prop(self, 'limitImport')
@@ -612,6 +621,10 @@ class AddTree(bpy.types.Operator):
             row = box.row()
             row.prop(self, 'leafScale')
             row.prop(self, 'leafScaleX')
+            
+            row = box.row()
+            row.prop(self, 'leafScaleT')
+            row.prop(self, 'leafScaleV')
             
             box.prop(self, 'horzLeaves')
             box.prop(self, 'leafangle')
