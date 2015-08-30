@@ -27,6 +27,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 * Split start height for longer trunk before splitting
 * Outward attraction to make branches point out from the center of the tree
 * added 'horizontal leaves' and 'leaf angle' to control how leaves are rotated
+* 'Leaf Scale Taper' and 'Leaf Scale Variation' to control leaf scale along branch and random variation in scale
 
 ######notes
 'leaf bend' seams to be broken and probably shouldn't be used, it may be removed soon
