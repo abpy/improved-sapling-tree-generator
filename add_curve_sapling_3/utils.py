@@ -645,6 +645,10 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         else:
             downV = uniform(-downAngleV[n], downAngleV[n])
         downRotMat = Matrix.Rotation(downAngle[n] + downV, 3, 'X')
+        
+        if p.offset == 1:
+            downRotMat = Matrix.Rotation(0, 3, 'X')
+        
         tempPos.rotate(downRotMat)
         # If the -ve flag for rotate is used we need to find which side of the stem the last child point was and then grow in the opposite direction.
         if rotate[n] < 0.0:
@@ -680,6 +684,8 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         
         # Determine the starting and ending radii of the stem using the tapering of the stem
         startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
+        if p.offset == 1:
+            startRad = p.radiusPar[1]
         endRad = startRad * (1 - taper[n])
         startRad = max(startRad, minRadius)
         endRad = max(endRad, minRadius)

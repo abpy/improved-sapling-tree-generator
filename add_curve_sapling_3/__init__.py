@@ -36,6 +36,7 @@ else:
 import bpy
 import time
 import os
+import ast
 
 #import cProfile
 
@@ -130,7 +131,7 @@ class ImportData(bpy.types.Operator):
         settings = f.readline()
         f.close()
         #print(settings)
-        settings = eval(settings)
+        settings = ast.literal_eval(settings)
         
         #use old attractup
         if type(settings['attractUp']) == float:
@@ -542,7 +543,6 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'minRadius')
             box.prop(self, 'closeTip')
             box.prop(self, 'rootFlare')
-            #box.prop(self, 'trunkTaper')
             
             split = box.split()
             col = split.column()
@@ -578,10 +578,8 @@ class AddTree(bpy.types.Operator):
         elif self.chooseSet == '3':
             box = layout.box()
             box.label("Branch Growth:")
+            
             #box.prop(self, 'startCurv')
-            #box.prop(self, 'attractUp')
-
-            #box.prop(self, 'ratioPower')
             
             split = box.split()
             
@@ -595,7 +593,6 @@ class AddTree(bpy.types.Operator):
             col.prop(self, 'lengthV')
             col.prop(self, 'downAngleV')
             col.prop(self, 'curveV')
-            #col.prop(self, 'taper')
             col.prop(self, 'attractUp')
 
         elif self.chooseSet == '4':
