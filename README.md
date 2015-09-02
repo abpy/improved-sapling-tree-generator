@@ -13,6 +13,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 * branch length variation now works in the range 0 - 1 and no longer produces errors
 * Leaf orientation is much improved, leaves now face upwards and outwards and have correct normals
 * The last stem on a branch now grows straight out, ignoring down angle. This improves apperance and creates a more realistic crown for central leader trees.
+* Taper can now be calculated automaticly based on branch lengths to make the branch radius change linearly from each split level to the next.
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
