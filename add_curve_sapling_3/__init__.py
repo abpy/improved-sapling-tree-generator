@@ -321,6 +321,9 @@ class AddTree(bpy.types.Operator):
         description='Root radius factor',
         min=1.0,
         default=1.0, update=update_tree)
+    autoTaper = BoolProperty(name='Auto Taper',
+        description='Calculate taper automaticly based on branch lengths',
+        default=True, update=update_tree)
     taper = FloatVectorProperty(name='Taper',
         description='The fraction of tapering on each branch (nTaper)',
         min=0.0,
@@ -543,6 +546,8 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'minRadius')
             box.prop(self, 'closeTip')
             box.prop(self, 'rootFlare')
+            
+            box.prop(self, 'autoTaper')
             
             split = box.split()
             col = split.column()

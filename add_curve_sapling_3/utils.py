@@ -859,6 +859,43 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             startPrune = False
     return ratio, splineToBone
 
+#calculate taper automaticly
+def findtaper(length, taper, shape, shapeS, levels):
+    taperS = []
+    for i, t in enumerate(length):
+        if i == 0:
+            shp = 1.0
+        elif i == 1: 
+            shp = shapeRatio(shape, 0)
+        else:
+            shp = shapeRatio(shapeS, 0)
+        t = t * shp
+        taperS.append(t)
+
+    taperP = []
+    for i, t in enumerate(taperS):
+        pm = 1
+        for x in range(i+1):
+            pm *= taperS[x]
+        taperP.append(pm)
+
+    taperR = []
+    for i, t in enumerate(taperP):
+        t = sum(taperP[i:levels])
+        taperR.append(t)
+
+    taperT = []
+    for i, t in enumerate(taperR):
+        try:
+            t = taperP[i] / taperR[i]
+        except ZeroDivisionError:
+            t = 1.0
+        taperT.append(t)
+    
+    taperT = [t * taper[i] for i, t in enumerate(taperT)]
+    
+    return taperT
+
 
 def addTree(props):
     global splitError
@@ -895,6 +932,7 @@ def addTree(props):
     minRadius = props.minRadius
     closeTip = props.closeTip
     rootFlare = props.rootFlare
+    autoTaper = props.autoTaper
     taper = props.taper#
     radiusTweak = props.radiusTweak
     ratioPower = props.ratioPower#
@@ -927,6 +965,10 @@ def addTree(props):
     windSpeed = props.windSpeed
     windGust = props.windGust
     armAnim = props.armAnim
+    
+    #taper
+    if autoTaper:
+        taper = findtaper(length, taper, shape, shapeS, levels)
     
     leafObj = None
     
@@ -1019,6 +1061,10 @@ def addTree(props):
         n = min(3,n)
         vertAtt = attractUp[n]
         splitError = 0.0
+        
+        #closeTip only on last level
+        closeTipp = all([(n == levels-1), closeTip])
+        
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
             kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU,
@@ -1063,7 +1109,7 @@ def addTree(props):
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, 
-                                                  branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight, attractOut)
+                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut)
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here
