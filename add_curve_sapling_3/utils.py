@@ -223,11 +223,8 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     if (n == 0) and (kp <= splitHeight):
         sCurv = 0.0
     
-    angle = splitAng + uniform(-splitAngV, splitAngV)
-    spreadangle = spreadAng(splitAng, splitAngV)
     curveangle = sCurv + (uniform(-stem.curvV,stem.curvV) * kp)
     curveVar = uniform(-stem.curvV,stem.curvV) * kp
-    
     curveVarMat = Matrix.Rotation(curveVar,3,'Y')
     
     # First find the current direction of the stem
@@ -248,7 +245,9 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         cuData = stem.spline.id_data.name
         cu = bpy.data.curves[cuData]
 
-        #calc branchRotMat
+        #calc angles
+        angle = splitAng + uniform(-splitAngV, splitAngV)
+        spreadangle = spreadAng(splitAng, splitAngV)
         branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
         
         # Now for each split add the new spline and adjust the growth direction
@@ -1005,6 +1004,7 @@ def addTree(props):
     cu.fill_mode = 'FULL'
     cu.bevel_depth = bevelDepth
     cu.bevel_resolution = bevelRes
+    cu.use_uv_as_generated = True
 
     # Fix the scale of the tree now
     scaleVal = scale + uniform(-scaleV,scaleV)
