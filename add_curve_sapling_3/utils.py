@@ -77,7 +77,7 @@ class childPoint:
 
 
 # This function calculates the shape ratio as defined in the paper
-def shapeRatio(shape,ratio,pruneWidthPeak=0.0,prunePowerHigh=0.0,prunePowerLow=0.0):
+def shapeRatio(shape,ratio,pruneWidthPeak=0.0,prunePowerHigh=0.0,prunePowerLow=0.0, custom=None):
     if shape == 0:
         return 0.05 + 0.95*ratio #0.2 + 0.8*ratio
     elif shape == 1:
@@ -101,6 +101,23 @@ def shapeRatio(shape,ratio,pruneWidthPeak=0.0,prunePowerHigh=0.0,prunePowerLow=0
         else:
             return 0.5 + 0.5*(1.0 - ratio)/0.3
     elif shape == 8:
+        r = 1 - ratio
+        if r == 1:
+            v = custom[3]
+        elif r >= custom[2]:
+            pos = (r - custom[2]) / (1 - custom[2])
+            #if (custom[0] >= custom[1] <= custom[3]) or (custom[0] <= custom[1] >= custom[3]):
+            pos = pos * pos
+            v = (pos * (custom[3] - custom[1])) + custom[1]
+        else:
+            pos = r / custom[2]
+            #if (custom[0] >= custom[1] <= custom[3]) or (custom[0] <= custom[1] >= custom[3]):
+            pos = 1 - (1 - pos) * (1 - pos)
+            v = (pos * (custom[1] - custom[0])) + custom[0]
+        
+        return v
+    
+    elif shape == 9:
         if (ratio < (1 - pruneWidthPeak)) and (ratio > 0.0):
             return ((ratio/(1 - pruneWidthPeak))**prunePowerHigh)
         elif (ratio >= (1 - pruneWidthPeak)) and (ratio < 1.0):
@@ -629,7 +646,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV,
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, oldRotate, ratioPower, resU,
-                    rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak):
+                    rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak, customShape):
     for p in childP:
         # Add a spline and set the coordinate of the first point.
         newSpline = cu.splines.new('BEZIER')
@@ -665,7 +682,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             # This is also here that the shape is used.
             lMax = length[1] * uniform(1 - lengthV[1], 1 + lengthV[1])
             #branchL = p.lengthPar * lMax * shapeRatio(shape, (p.lengthPar - p.offset) / (p.lengthPar - baseSize * scaleVal))
-            branchL = p.lengthPar * lMax * shapeRatio(shape, (1 - p.offset) / (1 - baseSize))
+            branchL = p.lengthPar * lMax * shapeRatio(shape, (1 - p.offset) / (1 - baseSize), custom=customShape)
             childStems = branches[2] * (0.2 + 0.8 * (branchL / p.lengthPar) / lMax)
         else:
             lMax = length[n] * uniform(1 - lengthV[n], 1 + lengthV[n])
@@ -802,7 +819,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     insideBool = True  # Init to avoid UnboundLocalError later
                 else:
                     insideBool = (
-                    (coordMag / scaleVal) < pruneWidth * shapeRatio(8, ratio, pruneWidthPeak, prunePowerHigh,
+                    (coordMag / scaleVal) < pruneWidth * shapeRatio(9, ratio, pruneWidthPeak, prunePowerHigh,
                                                                     prunePowerLow))
                 # If the point is not inside then we adjust the scale and current search bounds
                 if not insideBool:
@@ -859,13 +876,13 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
     return ratio, splineToBone
 
 #calculate taper automaticly
-def findtaper(length, taper, shape, shapeS, levels):
+def findtaper(length, taper, shape, shapeS, levels, customShape):
     taperS = []
     for i, t in enumerate(length):
         if i == 0:
             shp = 1.0
         elif i == 1: 
-            shp = shapeRatio(shape, 0)
+            shp = shapeRatio(shape, 0, custom=customShape)
         else:
             shp = shapeRatio(shapeS, 0)
         t = t * shp
@@ -922,6 +939,7 @@ def addTree(props):
     attractOut = props.attractOut
     shape = int(props.shape)#
     shapeS = int(props.shapeS)#
+    customShape = props.customShape
     branchDist = props.branchDist
     nrings = props.nrings
     baseSize = props.baseSize
@@ -967,7 +985,7 @@ def addTree(props):
     
     #taper
     if autoTaper:
-        taper = findtaper(length, taper, shape, shapeS, levels)
+        taper = findtaper(length, taper, shape, shapeS, levels, customShape)
     
     leafObj = None
     
@@ -1028,7 +1046,7 @@ def addTree(props):
             newPoint = newSpline.bezier_points[-1]
             ratioVal = (c+1)/(enNum)
             zVal = scaleVal - scaleVal*(1-baseSize)*ratioVal
-            newPoint.co = Vector((scaleVal*pruneWidth*shapeRatio(8,ratioVal,pruneWidthPeak,prunePowerHigh,prunePowerLow),0,zVal))
+            newPoint.co = Vector((scaleVal*pruneWidth*shapeRatio(9,ratioVal,pruneWidthPeak,prunePowerHigh,prunePowerLow),0,zVal))
             (newPoint.handle_right_type,newPoint.handle_left_type) = (enHandle,enHandle)
         newSpline = enCu.splines.new('BEZIER')
         newPoint = newSpline.bezier_points[-1]
@@ -1040,7 +1058,7 @@ def addTree(props):
             newPoint = newSpline.bezier_points[-1]
             ratioVal = (c+1)/(enNum)
             zVal = scaleVal - scaleVal*(1-baseSize)*ratioVal
-            newPoint.co = Vector((0,scaleVal*pruneWidth*shapeRatio(8,ratioVal,pruneWidthPeak,prunePowerHigh,prunePowerLow),zVal))
+            newPoint.co = Vector((0,scaleVal*pruneWidth*shapeRatio(9,ratioVal,pruneWidthPeak,prunePowerHigh,prunePowerLow),zVal))
             (newPoint.handle_right_type,newPoint.handle_left_type) = (enHandle,enHandle)
 
     leafVerts = []
@@ -1077,7 +1095,7 @@ def addTree(props):
             fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
                                       curveRes, curveV, downAngle, downAngleV, leafDist, leaves, length, lengthV,
                                       levels, n, oldRotate, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
-                                      taper, shapeS, minRadius, radiusTweak)
+                                      taper, shapeS, minRadius, radiusTweak, customShape)
 
         childP = []
         # Now grow each of the stems in the list of those to be extended

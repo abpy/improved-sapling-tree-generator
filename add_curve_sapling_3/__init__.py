@@ -56,6 +56,16 @@ shapeList = [('0', 'Conical (0)', 'Shape = 0'),
             ('4', 'Tapered Cylindrical (4)', 'Shape = 4'),
             ('5', 'Flame (5)', 'Shape = 5'),
             ('6', 'Inverse Conical (6)', 'Shape = 6'),
+            ('7', 'Tend Flame (7)', 'Shape = 7'),
+            ('8', 'Custom Shape (8)', 'Shape = 8')]
+
+shapeList2 = [('0', 'Conical (0)', 'Shape = 0'),
+            ('1', 'Spherical (1)', 'Shape = 1'),
+            ('2', 'Hemispherical (2)', 'Shape = 2'),
+            ('3', 'Cylindrical (3)', 'Shape = 3'),
+            ('4', 'Tapered Cylindrical (4)', 'Shape = 4'),
+            ('5', 'Flame (5)', 'Shape = 5'),
+            ('6', 'Inverse Conical (6)', 'Shape = 6'),
             ('7', 'Tend Flame (7)', 'Shape = 7')]
 
 handleList = [('0', 'Auto', 'Auto'),
@@ -280,8 +290,14 @@ class AddTree(bpy.types.Operator):
         default='7', update=update_tree)
     shapeS = EnumProperty(name='Secondary Branches Shape',
         description='The shape of secondary splits',
-        items=shapeList,
+        items=shapeList2,
         default='4', update=update_tree)
+    customShape = FloatVectorProperty(name='Custom Shape',
+        description='custom shape branch length at (Base, Middle, Middle Position, Top)',
+        size=4,
+        min=.01,
+        max=1,
+        default=[.5, 1.0, .3, .5], update=update_tree)
     branchDist = FloatProperty(name='Branch Distribution',
         description='',
         min=0.1,
@@ -427,7 +443,7 @@ class AddTree(bpy.types.Operator):
         default=True, update=update_tree)
     leafDist = EnumProperty(name='Leaf Distribution',
         description='The way leaves are distributed on branches',
-        items=shapeList,
+        items=shapeList2,
         default='6', update=update_tree)
     bevelRes = IntProperty(name='Bevel Resolution',
         description='The bevel resolution of the curves',
@@ -495,6 +511,10 @@ class AddTree(bpy.types.Operator):
             
             box.prop(self, 'handleType')
             box.prop(self, 'shape')
+            
+            row = box.row()
+            row.prop(self, 'customShape')
+            
             box.prop(self, 'shapeS')
             box.prop(self, 'branchDist')
             box.prop(self, 'nrings')
