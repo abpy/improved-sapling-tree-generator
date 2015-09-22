@@ -1,6 +1,11 @@
 # improved-sapling-tree-generator
 A new version of Blenders sapling tree generator with improvements, new features, and bug fixes
 
+<!--####Bigger Changes
+
+-->
+
+
 ####Change Log
 * Rearranged Interface
 * Moved radius settings to a seperate panel
@@ -15,6 +20,8 @@ A new version of Blenders sapling tree generator with improvements, new features
 * The last stem on a branch now grows straight out, ignoring down angle. This improves apperance and creates a more realistic crown for central leader trees.
 * Taper can now be calculated automaticly based on branch lengths to make the branch radius change linearly from each split level to the next.
 * The shape for branch lengths can now be set to a custom shape
+* 'Use UV for mapping' is now enabled by default
+* new method to rotate branches evenly around a tree with splits in the trunk
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
