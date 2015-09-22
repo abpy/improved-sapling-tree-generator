@@ -79,6 +79,10 @@ settings = [('0', 'Geometry', 'Geometry'),
             ('5', 'Leaves', 'Leaves'),
             ('6', 'Armature', 'Armature')]
 
+branchmodes = [("original", "Original", "rotate around each branch"),
+              ("rotate", "Rotate", "evenly distribute  branches to point outward from center of tree"),
+              ("random", "Random", "choose random point")]
+
 
 def getPresetpath():
     """Support user defined scripts directory
@@ -259,6 +263,10 @@ class AddTree(bpy.types.Operator):
     splitByLen = BoolProperty(name='Split relative to length',
         description='Split proportional to branch length',
         default=False, update=update_tree)
+    rMode = EnumProperty(name="", #"Branching Mode"
+        description='Branching and Rotation Mode',
+        items=branchmodes,
+        default="rotate", update=update_tree)
     splitAngle = FloatVectorProperty(name='Split Angle',
         description='Angle of branch splitting (nSplitAngle)',
         default=[0, 0, 0, 0],
@@ -597,14 +605,15 @@ class AddTree(bpy.types.Operator):
             col.prop(self, 'segSplits')
             col.prop(self, 'splitAngleV')
             col.prop(self, 'rotateV')
+            
+            col.label("Branching Mode:")
+            col.prop(self, 'rMode')
 
             box.column().prop(self, 'curveRes')
 
         elif self.chooseSet == '3':
             box = layout.box()
             box.label("Branch Growth:")
-            
-            #box.prop(self, 'startCurv')
             
             split = box.split()
             
