@@ -939,9 +939,10 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             #    tVals = [t * .8 + .2 for t in tVals]
             
             #grow branches in rings
-            if (n == 0) and (nrings > 2):
+            if (n == 0) and (nrings > 0):
                 tVals = [(floor(t * nrings)) / nrings for t in tVals[:-1]]
                 tVals.append(1)
+                tVals = [t for t in tVals if t > baseSize]
 
             #branch distribution
             if n == 0:
@@ -1219,11 +1220,11 @@ def addTree(props):
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here
+        leafP = []
         if (storeN == levels-1) and leaves:
             oldRot = 0.0
             n = min(3,n+1)
             # For each of the child points we add leaves
-            leafP = []
             for cp in childP:
                 # If the special flag is set then we need to add several leaves at the same location
                 if leaves < 0:
