@@ -1,11 +1,16 @@
 # improved-sapling-tree-generator
 A new version of Blenders sapling tree generator with improvements, new features, and bug fixes
 
-<!--####Big Changes
-Braches now sprout from the tip of the parent branch, these branches grow straight out, ignoring down angle. This creates the apperance of the branch transitioning from one split level to the next. On the trunk, this creates a more realistic crown for central leader trees. This also means branches will always end with the last split level, so there are no branches without leaves.
+####Big Changes
+Branch splitting is now much improved, especially for trunk splits. Splitting is controlable, more realistic, and works with auto curve handles.
+Splitting is more balanced and uniformly random.
 
-New...
--->
+Braches now sprout from the tip of the parent branch, these branches grow straight out, ignoring down angle. This creates the apperance of the branch transitioning from one split level to the next. On the trunk, this creates a more realistic crown for central leader trees. This also means branches will always end with the last split level, so there are no branches ending without leaves.
+
+New branch rotation method (for first level only) to grow branches outward from the center of the tree, and setting the rotation so that the distribution of branches on the outside is even.
+The rotation method can be changed with the 'Branching Mode' property
+
+New leaf rotation options can set the leaf orientation so that the leaves face upwards and outwards in a much more realistic way.
 
 ####Change Log
 * Rearranged Interface
