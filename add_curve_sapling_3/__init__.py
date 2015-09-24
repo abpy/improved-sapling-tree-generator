@@ -151,6 +151,17 @@ class ImportData(bpy.types.Operator):
         if type(settings['attractUp']) == float:
             atr = settings['attractUp']
             settings['attractUp'] = [0, 0, atr, atr]
+        
+        #use old leaf rotations
+        if 'leafDownAngle' not in settings:
+            l = settings['levels']
+            settings['leafDownAngle'] = settings['downAngle'][min(l, 3)]
+            settings['leafDownAngleV'] = settings['downAngleV'][min(l, 3)]
+            settings['leafRotate'] = settings['rotate'][min(l, 3)]
+            settings['leafRotateV'] = settings['rotateV'][min(l, 3)]
+        
+        #zero leaf bend
+        settings['bend'] = 0
             
         # Set the flag to use the settings
         useSet = True
@@ -415,6 +426,20 @@ class AddTree(bpy.types.Operator):
     leaves = IntProperty(name='Leaves',
         description='Maximum number of leaves per branch (Leaves)',
         default=25, update=update_tree)
+    
+    leafDownAngle = FloatProperty(name='Leaf Down Angle',
+        description='The angle between a new leaf and the brangh it grew from',
+        default=45, update=update_tree)
+    leafDownAngleV = FloatProperty(name='Leaf Down Angle Variation',
+        description='Variation in the down angle',
+        default=10, update=update_tree)
+    leafRotate = FloatProperty(name='Leaf Rotate Angle',
+        description='The angle of a new leaf around the one it grew from',
+        default=137.5, update=update_tree)
+    leafRotateV = FloatProperty(name='Leaf Rotate Angle Variation',
+        description='Variation in the rotate angle',
+        default=0.0, update=update_tree)
+    
     leafScale = FloatProperty(name='Leaf Scale',
         description='The scaling applied to the whole leaf (LeafScale)',
         min=0.0,
@@ -438,11 +463,13 @@ class AddTree(bpy.types.Operator):
         description='The shape of the leaves, rectangular are UV mapped',
         items=(('hex', 'Hexagonal', '0'), ('rect', 'Rectangular', '1')),
         default='hex', update=update_tree)
-    bend = FloatProperty(name='Leaf Bend',
-        description='The proportion of bending applied to the leaf (Bend)',
-        min=0.0,
-        max=1.0,
-        default=0.0, update=update_tree)
+    
+#    bend = FloatProperty(name='Leaf Bend',
+#        description='The proportion of bending applied to the leaf (Bend)',
+#        min=0.0,
+#        max=1.0,
+#        default=0.0, update=update_tree)
+
     leafangle = FloatProperty(name='Leaf Angle',
         description='Leaf vertical attraction',
         default=0.0, update=update_tree)
@@ -649,6 +676,16 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'leaves')
             box.prop(self, 'leafDist')
             
+            box.label("")
+            row = box.row()
+            row.prop(self, 'leafDownAngle')
+            row.prop(self, 'leafDownAngleV')
+            
+            row = box.row()
+            row.prop(self, 'leafRotate')
+            row.prop(self, 'leafRotateV')
+            box.label("")
+            
             row = box.row()
             row.prop(self, 'leafScale')
             row.prop(self, 'leafScaleX')
@@ -660,8 +697,8 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'horzLeaves')
             box.prop(self, 'leafangle')
             
-            box.label(" ")
-            box.prop(self, 'bend')
+            #box.label(" ")
+            #box.prop(self, 'bend')
 
         elif self.chooseSet == '6':
             box = layout.box()
