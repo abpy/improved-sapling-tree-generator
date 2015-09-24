@@ -25,9 +25,11 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 * Leaf orientation is much improved, leaves now face upwards and outwards and have correct normals
 * The last stem on a branch now grows straight out, ignoring down angle. This improves apperance and creates a more realistic crown for central leader trees.
 * Taper can now be calculated automaticly based on branch lengths to make the branch radius change linearly from each split level to the next.
-* The shape for branch lengths can now be set to a custom shape
 * 'Use UV for mapping' is now enabled by default
-* new method to rotate branches evenly around a tree with splits in the trunk
+* leaf down angle and rotation now have their own parameters in the leaf panel
+* negative down angle values for leaves now works similarly to branches
+* leaf scale taper works for palmate compound leaves (negative number of leaves)
+* leaf bend removed, is set to zero for old presets with leaf bend
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
@@ -44,6 +46,10 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 * Outward attraction to make branches point out from the center of the tree
 * added 'horizontal leaves' and 'leaf angle' to control how leaves are rotated
 * 'Leaf Scale Taper' and 'Leaf Scale Variation' to control leaf scale along branch and random variation in scale
+* The shape for branch lengths can now be set to a custom shape
+* new method to rotate branches evenly around a tree with splits in the trunk
 
 ######notes
 'leaf bend' seems to be broken and probably shouldn't be used, it may be removed soon
+
+*update*: leaf bend removed form the interface
