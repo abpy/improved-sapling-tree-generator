@@ -39,11 +39,12 @@ xAxis = Vector((1,0,0))
 
 # This class will contain a part of the tree which needs to be extended and the required tree parameters
 class stemSpline:
-    def __init__(self,spline,curvature,curvatureV,segments,maxSegs,segLength,childStems,stemRadStart,stemRadEnd,splineNum):
+    def __init__(self,spline,curvature,curvatureV,attractUp,segments,maxSegs,segLength,childStems,stemRadStart,stemRadEnd,splineNum):
         self.spline = spline
         self.p = spline.bezier_points[-1]
         self.curv = curvature
         self.curvV = curvatureV
+        self.vertAtt = attractUp
         self.seg = segments
         self.segMax = maxSegs
         self.segL = segLength
@@ -238,7 +239,7 @@ def anglemean(a1, a2, fac):
 
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL):
+def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,hType,splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL, lenV):
     
     #curv at base
     sCurv = stem.curv
@@ -303,13 +304,13 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
             # Introduce upward curvature
             upRotAxis = xAxis.copy()
             upRotAxis.rotate(dirVec.to_track_quat('Z','Y'))
-            curveUpAng = curveUp(attractUp,dirVec.to_track_quat('Z','Y'),stem.segMax)
+            curveUpAng = curveUp(stem.vertAtt,dirVec.to_track_quat('Z','Y'),stem.segMax)
             upRotMat = Matrix.Rotation(-curveUpAng,3,upRotAxis)
             dirVec.rotate(upRotMat)
             # Make the growth vec the length of a stem segment
             dirVec.normalize()
             
-            #stemL = stemsegL * uniform(.5, 1)
+            #stemL = stemsegL * uniform(1-lenV, 1)
             #dirVec *= stemL
             
             dirVec *= stem.segL
@@ -325,9 +326,8 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
                 newPoint.radius = 0.0
             # If this isn't the last point on a stem, then we need to add it to the list of stems to continue growing
             if stem.seg != stem.segMax:
-                #splineList.append(stemSpline(newSpline,stem.curv-angle/(stem.segMax-stem.seg),stem.curvV,stem.seg+1,stem.segMax,stem.segL,stem.children,stem.radS,stem.radE,len(cu.splines)-1))
-                nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.seg+1,stem.segMax,stem.segL,stem.children,stem.radS,stem.radE,len(cu.splines)-1)
-                #nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.seg+1,stem.segMax,stemL,stem.children,stem.radS,stem.radE,len(cu.splines)-1)
+                nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.vertAtt,stem.seg+1,stem.segMax,stem.segL,stem.children,stem.radS,stem.radE,len(cu.splines)-1)
+                #nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.vertAtt,stem.seg+1,stem.segMax,stemL,stem.children,stem.radS,stem.radE,len(cu.splines)-1)
                 nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
                 splineList.append(nstem)
                 splineToBone.append('bone'+(str(stem.splN)).rjust(3,'0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3,'0'))
@@ -367,7 +367,7 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
         
     upRotAxis = xAxis.copy()
     upRotAxis.rotate(dirVec.to_track_quat('Z','Y'))
-    curveUpAng = curveUp(attractUp,dirVec.to_track_quat('Z','Y'),stem.segMax)
+    curveUpAng = curveUp(stem.vertAtt,dirVec.to_track_quat('Z','Y'),stem.segMax)
     upRotMat = Matrix.Rotation(-curveUpAng,3,upRotAxis)
     dirVec.rotate(upRotMat)
     dirVec.normalize()
@@ -383,9 +383,6 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,attractUp,hType,spl
     if (stem.seg == stem.segMax-1) and closeTip:
         newPoint.radius = 0.0
     # There are some cases where a point cannot have handles as VECTOR straight away, set these now.
-    #if numSplit != 0:
-    #    tempPoint = stem.spline.bezier_points[-2]
-    #    (tempPoint.handle_left_type,tempPoint.handle_right_type) = ('VECTOR','VECTOR')
     if len(stem.spline.bezier_points) == 2:
         tempPoint = stem.spline.bezier_points[0]
         (tempPoint.handle_left_type,tempPoint.handle_right_type) = ('VECTOR','VECTOR')
@@ -402,11 +399,19 @@ def genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,loc,quat,offset,index
         #verts = [Vector((1,0,0)),Vector((1,0,1)),Vector((-1,0,1)),Vector((-1,0,0))]
         verts = [Vector((.5,0,0)),Vector((.5,0,1)),Vector((-.5,0,1)),Vector((-.5,0,0))]
         edges = [[0,1],[1,2],[2,3],[3,0]]
-        faces = [[0,1,2,3],]
-    #faces = [[0,1,5],[1,2,4,5],[2,3,4]]
+        faces = [[0,1,2,3]]
+    elif leafShape == 'dFace':
+        verts = [Vector((.5,.5,0)),Vector((.5,-.5,0)),Vector((-.5,-.5,0)),Vector((-.5,.5,0))]
+        edges = [[0,1],[1,2],[2,3],[3,0]]
+        faces = [[0,3,2,1]]
+    elif leafShape == 'dVert':
+        verts = [Vector((0,0,1))]
+        edges = []
+        faces = []
 
     vertsList = []
     facesList = []
+    normal = Vector((0,0,1))
     
     if leaves < 0:
         rotMat = Matrix.Rotation(oldRot,3,'Y')
@@ -478,6 +483,7 @@ def genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,loc,quat,offset,index
     # For each of the verts we now rotate and scale them, then append them to the list to be added to the mesh
     for v in verts:
         v.z *= leafScale
+        v.y *= leafScale
         v.x *= leafScaleX*leafScale
         
         v.rotate(Euler((0, 0, radians(180))))
@@ -506,14 +512,20 @@ def genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,loc,quat,offset,index
             v.rotate(rotateZOrien)
             v.rotate(rotateX)
             v.rotate(rotateZOrien2)
-
-    for v in verts:
-        v += loc
+    
+    if leafShape == 'dVert':
+        normal = verts[0]
+        normal.normalize()
+        v = loc
         vertsList.append([v.x,v.y,v.z])
-
-    for f in faces:
-        facesList.append([f[0] + index,f[1] + index,f[2] + index,f[3] + index])
-    return vertsList,facesList,oldRot
+    else:
+        for v in verts:
+            v += loc
+            vertsList.append([v.x,v.y,v.z])
+        for f in faces:
+            facesList.append([f[0] + index,f[1] + index,f[2] + index,f[3] + index])
+            
+    return vertsList,facesList,normal,oldRot
 
 
 def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape, leaves, levelCount, splineToBone,
@@ -650,7 +662,7 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape,
     treeOb.parent = armOb
 
 
-def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU, scale0, scaleV0,
+def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, resU, scale0, scaleV0,
                     scaleVal, taper, minRadius, rootFlare):
     newSpline = cu.splines.new('BEZIER')
     cu.resolution_u = resU
@@ -667,11 +679,11 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, leng
     endRad = max(endRad, minRadius)
     newPoint.radius = startRad * rootFlare
     addstem(
-        stemSpline(newSpline, curve[0] / curveRes[0], curveV[0] / curveRes[0], 0, curveRes[0], branchL / curveRes[0],
+        stemSpline(newSpline, curve[0] / curveRes[0], curveV[0] / curveRes[0], attractUp[0], 0, curveRes[0], branchL / curveRes[0],
                    childStems, startRad, endRad, 0))
 
 
-def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV,
+def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, ratioPower, resU,
                     rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak, customShape, rMode):
     
@@ -820,7 +832,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
 
         # Add the new stem to list of stems to grow and define which bone it will be parented to
         addstem(
-            stemSpline(newSpline, curveVal, curveVar, 0, curveRes[n], branchL / curveRes[n], childStems,
+            stemSpline(newSpline, curveVal, curveVar, attractUp[n], 0, curveRes[n], branchL / curveRes[n], childStems,
                        startRad, endRad, len(cu.splines) - 1))
         addsplinetobone(p.parBone)
 
@@ -829,7 +841,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     deleteSpline, forceSprout, handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                    splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight, attractOut, rMode):
+                    splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight, attractOut, rMode, lengthV):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -873,13 +885,12 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             else:
                 kp = 1.0
             
-            # not quite working yet
             #split bias
             splitValue = segSplits[n]
             if n == 0:
-                splitValue = ((splitBias * kp) - (.5 * splitBias)) + splitValue
+                #splitValue = ((splitBias * kp) - (.5 * splitBias)) + splitValue
+                splitValue = ((2 * splitBias) * (kp - .5) + 1) * splitValue
                 splitValue = max(splitValue, 0.0)
-                #splitValue = min(splitValue, 1.0)
             
             # For each of the splines in this list set the number of splits and then grow it
             for spl in tempList:
@@ -902,7 +913,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     numSplit = 1
                 else:
                     if (n >= 1) and splitByLen:
-                        L = ((spl.segL * curveRes[n]) / scaleVal) # / length[n]
+                        L = ((spl.segL * curveRes[n]) / scaleVal)
                         lf = 1
                         for l in length[:n+1]:
                             lf *= l
@@ -914,7 +925,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 if (k == int(curveRes[n] / 2 + 0.5)) and (curveBack[n] != 0):
                     spl.curv += 2 * (curveBack[n] / curveRes[n]) #was -4 * 
                 
-                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, vertAtt, handles, splineToBone, closeTip, kp, splitHeight, attractOut[n], stemsegL)
+                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, handles, splineToBone, closeTip, kp, splitHeight, attractOut[n], stemsegL, lengthV[n])
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
@@ -950,7 +961,6 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 tVals = findChildPoints(splineList, st.children)
             #print("debug tvals[%d] , splineList[%d], %s" % ( len(tVals), len(splineList), st.children))
             # If leaves is -ve then we need to make sure the only point which sprouts is the end of the spline
-            # if not st.children:
             if not st.children:
                 tVals = [1.0]
             # If this is the trunk then we need to remove some of the points because of baseSize
@@ -958,9 +968,11 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 trimNum = int(baseSize * (len(tVals) + 1))
                 tVals = tVals[trimNum:]
             
-            #sSize = baseSize
-            #if n > 0:
-            #    tVals = [t * (1-sSize) + sSize for t in tVals]
+#            baseSize_s = .25
+#            sSize = baseSize_s
+#            if n > 0:
+#                trimNum = int(sSize * (len(tVals) + 1))
+#                tVals = tVals[trimNum:]
             
             #grow branches in rings
             if (n == 0) and (nrings > 0):
@@ -1182,6 +1194,7 @@ def addTree(props):
 
     leafVerts = []
     leafFaces = []
+    leafNormals = []
     levelCount = []
 
     splineToBone = deque([''])
@@ -1196,7 +1209,6 @@ def addTree(props):
         addstem = stemList.append
         # If n is used as an index to access parameters for the tree it must be at most 3 or it will reference outside the array index
         n = min(3,n)
-        vertAtt = attractUp[n]
         splitError = 0.0
         
         #closeTip only on last level
@@ -1204,13 +1216,13 @@ def addTree(props):
         
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
-            kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, length, lengthV, ratio, resU,
+            kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, resU,
                                       scale0, scaleV0, scaleVal, taper, minRadius, rootFlare)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:
             # For each of the points defined in the list of stem starting points we need to grow a stem.
             fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
-                                      curveRes, curveV, downAngle, downAngleV, leafDist, leaves, length, lengthV,
+                                      curveRes, curveV, attractUp, downAngle, downAngleV, leafDist, leaves, length, lengthV,
                                       levels, n, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
                                       taper, shapeS, minRadius, radiusTweak, customShape, rMode)
 
@@ -1243,8 +1255,8 @@ def addTree(props):
                                                   originalCurvV, originalHandleL, originalHandleR, originalLength,
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                                                  splineToBone, splitAngle, splitAngleV, st, startPrune, vertAtt, 
-                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut, rMode)
+                                                  splineToBone, splitAngle, splitAngleV, st, startPrune, 
+                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut, rMode, lengthV)
 
         levelCount.append(len(cu.splines))
         # If we need to add leaves, we do it here
@@ -1258,17 +1270,19 @@ def addTree(props):
                 if leaves < 0:
                     oldRot = -leafRotate / 2
                     for g in range(abs(leaves)):
-                        (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,cp.co,cp.quat,cp.offset,
+                        (vertTemp,faceTemp,normal,oldRot) = genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,cp.co,cp.quat,cp.offset,
                                                                  len(leafVerts),leafDownAngle,leafDownAngleV,leafRotate,leafRotateV,oldRot,bend,leaves, leafShape, leafangle, horzLeaves)
                         leafVerts.extend(vertTemp)
                         leafFaces.extend(faceTemp)
+                        leafNormals.extend(normal)
                         leafP.append(cp)
                 # Otherwise just add the leaves like splines.
                 else:
-                    (vertTemp,faceTemp,oldRot) = genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,cp.co,cp.quat,cp.offset,
+                    (vertTemp,faceTemp,normal,oldRot) = genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,cp.co,cp.quat,cp.offset,
                                                              len(leafVerts),leafDownAngle,leafDownAngleV,leafRotate,leafRotateV,oldRot,bend,leaves, leafShape, leafangle, horzLeaves)
                     leafVerts.extend(vertTemp)
                     leafFaces.extend(faceTemp)
+                    leafNormals.extend(normal)
                     leafP.append(cp)
             # Create the leaf mesh and object, add geometry using from_pydata, edges are currently added by validating the mesh which isn't great
             leafMesh = bpy.data.meshes.new('leaves')
@@ -1276,6 +1290,10 @@ def addTree(props):
             bpy.context.scene.objects.link(leafObj)
             leafObj.parent = treeOb
             leafMesh.from_pydata(leafVerts,(),leafFaces)
+            
+            #set vertex normals for dupliVerts
+            if leafShape == 'dVert':
+                leafMesh.vertices.foreach_set('normal',leafNormals)
 
             if leafShape == 'rect':
                 leafMesh.uv_textures.new("leafUV")
@@ -1288,33 +1306,6 @@ def addTree(props):
                     uvlayer[i*4 + 3].uv = Vector((1 - leafScaleX, 0))
 
             leafMesh.validate()
-
-# This can be used if we need particle leaves
-#            if (storeN == levels-1) and leaves:
-#                normalList = []
-#                oldRot = 0.0
-#                n = min(3,n+1)
-#                oldRot = 0.0
-#                # For each of the child points we add leaves
-#                for cp in childP:
-#                    # Here we make the new "sprouting" stems diverge from the current direction
-#                    dirVec = zAxis.copy()
-#                    oldRot += rotate[n]+uniform(-rotateV[n],rotateV[n])
-#                    downRotMat = Matrix.Rotation(downAngle[n]+uniform(-downAngleV[n],downAngleV[n]),3,'X')
-#                    rotMat = Matrix.Rotation(oldRot,3,'Z')
-#                    dirVec.rotate(downRotMat)
-#                    dirVec.rotate(rotMat)
-#                    dirVec.rotate(cp.quat)
-#                    normalList.extend([dirVec.x,dirVec.y,dirVec.z])
-#                    leafVerts.append(cp.co)
-#                # Create the leaf mesh and object, add geometry using from_pydata, edges are currently added by validating the mesh which isn't great
-#                edgeList = [(a,a+1) for a in range(len(childP)-1)]
-#                leafMesh = bpy.data.meshes.new('leaves')
-#                leafObj = bpy.data.objects.new('leaves',leafMesh)
-#                bpy.context.scene.objects.link(leafObj)
-#                leafObj.parent = treeOb
-#                leafMesh.from_pydata(leafVerts,edgeList,())
-#                leafMesh.vertices.foreach_set('normal',normalList)
 
     # If we need and armature we add it
     if useArm:

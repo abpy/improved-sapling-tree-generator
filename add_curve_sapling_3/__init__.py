@@ -318,7 +318,7 @@ class AddTree(bpy.types.Operator):
         max=1,
         default=[.5, 1.0, .3, .5], update=update_tree)
     branchDist = FloatProperty(name='Branch Distribution',
-        description='',
+        description='Adjust branch spacing to put more branches at the top or bottom of the tree',
         min=0.1,
         soft_max=10,
         default=1.0, update=update_tree)
@@ -337,7 +337,7 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=0.2, update=update_tree)
     splitBias = FloatProperty(name='splitBias',
-        description='splitBias',
+        description='Put more splits at the top or bottom of the tree',
         soft_min=-2.0,
         soft_max=2.0,
         default=0.0, update=update_tree)
@@ -428,7 +428,7 @@ class AddTree(bpy.types.Operator):
         default=25, update=update_tree)
     
     leafDownAngle = FloatProperty(name='Leaf Down Angle',
-        description='The angle between a new leaf and the brangh it grew from',
+        description='The angle between a new leaf and the branch it grew from',
         default=45, update=update_tree)
     leafDownAngleV = FloatProperty(name='Leaf Down Angle Variation',
         description='Variation in the down angle',
@@ -461,7 +461,7 @@ class AddTree(bpy.types.Operator):
         default=0.0, update=update_tree)
     leafShape = EnumProperty(name='Leaf Shape',
         description='The shape of the leaves, rectangular are UV mapped',
-        items=(('hex', 'Hexagonal', '0'), ('rect', 'Rectangular', '1')),
+        items=(('hex', 'Hexagonal', '0'), ('rect', 'Rectangular', '1'), ('dFace', 'DupliFaces', '2'), ('dVert', 'DupliVerts', '3')),
         default='hex', update=update_tree)
     
 #    bend = FloatProperty(name='Leaf Bend',
