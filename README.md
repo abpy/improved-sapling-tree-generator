@@ -41,15 +41,18 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 * Root flare to make trunk wider at base
 * Leaf rotation can now use negetive values like branches do
 * Vertical atraction can now be set individually for each split level
-* Experimental 'split bias' for trunk splits to put more splits at top or bottom of tree
+* 'split bias' for trunk splits to put more splits at top or bottom of tree
 * Split start height for longer trunk before splitting
 * Outward attraction to make branches point out from the center of the tree
 * added 'horizontal leaves' and 'leaf angle' to control how leaves are rotated
 * 'Leaf Scale Taper' and 'Leaf Scale Variation' to control leaf scale along branch and random variation in scale
 * The shape for branch lengths can now be set to a custom shape
 * new method to rotate branches evenly around a tree with splits in the trunk
+* leaf shape can now be set to make mesh for dupliFaces or dupliVerts
 
 ######notes
 'leaf bend' seems to be broken and probably shouldn't be used, it may be removed soon
 
 *update*: leaf bend removed form the interface
+
+*update*: split bias works better now
