@@ -239,6 +239,11 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=[0, 0, 0, 0],
         size=4, update=update_tree)
+    taperCrown = FloatProperty(name='Taper Crown',
+        description='Shorten trunk splits toward outside of tree',
+        min=0.0,
+        max=1.0,
+        default=0,update=update_tree)
     branches = IntVectorProperty(name='Branches',
         description='The number of branches grown at each level (nBranches)',
         min=0,
@@ -385,6 +390,11 @@ class AddTree(bpy.types.Operator):
         description='Variation in the down angle (nDownAngleV)',
         default=[0, -50, 10, 10],
         size=4, update=update_tree)
+    useOldDownAngle = BoolProperty(name='Use old down angle variation',
+        default=False, update=update_tree)
+    useParentAngle = BoolProperty(name = 'Use parent angle',
+        description = '(first level) Rotate branch to match parent branch',
+        default=True, update=update_tree)
     rotate = FloatVectorProperty(name='Rotate Angle',
         description=('The angle of a new branch around the one it grew from '
         '(nRotate)'),
@@ -515,12 +525,12 @@ class AddTree(bpy.types.Operator):
         description='Limited imported tree to 2 levels & no leaves for speed',
         default=True, update=no_update_tree)
 
-    startCurv = FloatProperty(name='Trunk Starting Angle',
-        description=('The angle between vertical and the starting direction '
-        'of the trunk'),
-        min=0.0,
-        max=360,
-        default=0.0, update=update_tree)
+#    startCurv = FloatProperty(name='Trunk Starting Angle',
+#        description=('The angle between vertical and the starting direction '
+#        'of the trunk'),
+#        min=0.0,
+#        max=360,
+#        default=0.0, update=update_tree)
 
     @classmethod
     def poll(cls, context):
@@ -642,6 +652,8 @@ class AddTree(bpy.types.Operator):
             box = layout.box()
             box.label("Branch Growth:")
             
+            box.prop(self, 'taperCrown')
+            
             split = box.split()
             
             col = split.column()
@@ -655,6 +667,9 @@ class AddTree(bpy.types.Operator):
             col.prop(self, 'downAngleV')
             col.prop(self, 'curveV')
             col.prop(self, 'attractUp')
+            
+            box.prop(self, 'useOldDownAngle')
+            box.prop(self, 'useParentAngle')
 
         elif self.chooseSet == '4':
             box = layout.box()
