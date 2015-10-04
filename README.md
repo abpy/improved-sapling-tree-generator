@@ -30,6 +30,8 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 * negative down angle values for leaves now works similarly to branches
 * leaf scale taper works for palmate compound leaves (negative number of leaves)
 * leaf bend removed, is set to zero for old presets with leaf bend
+* Length variation now affects split branch stems individually
+* Down angle is calculated differently and should be easier to use, the old method is available.
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
@@ -49,6 +51,7 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 * The shape for branch lengths can now be set to a custom shape
 * new method to rotate branches evenly around a tree with splits in the trunk
 * leaf shape can now be set to make mesh for dupliFaces or dupliVerts
+* crown taper to shorten trunk splits farther from the center of the tree
 
 ######notes
 'leaf bend' seems to be broken and probably shouldn't be used, it may be removed soon
