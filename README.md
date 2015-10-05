@@ -52,6 +52,8 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 * new method to rotate branches evenly around a tree with splits in the trunk
 * leaf shape can now be set to make mesh for dupliFaces or dupliVerts
 * crown taper to shorten trunk splits farther from the center of the tree
+* the height that pruning starts can be set separately from trunk height
+* base size for secondary branch levels
 
 ######notes
 'leaf bend' seems to be broken and probably shouldn't be used, it may be removed soon
