@@ -336,6 +336,11 @@ class AddTree(bpy.types.Operator):
         min=0.0,
         max=1.0,
         default=0.4, update=update_tree)
+    baseSize_s = FloatProperty(name='Secondary Base Size',
+        description='Factor to decrease base size for each level',
+        min=0.0,
+        max=1.0,
+        default=0.25, update=update_tree)
     splitHeight = FloatProperty(name='Split Height',
         description='Fraction of tree height with no splits',
         min=0.0,
@@ -415,6 +420,11 @@ class AddTree(bpy.types.Operator):
         description='The width of the envelope (PruneWidth)',
         min=0.0,
         default=0.4, update=update_tree)
+    pruneBase = FloatProperty(name='Prune Base Height',
+        description='The height of the base of the envelope, bound by trunk height',
+        min=0.0,
+        max=1.0,
+        default=0.3, update=update_tree)
     pruneWidthPeak = FloatProperty(name='Prune Width Peak',
         description=('Fraction of envelope height where the maximum width '
         'occurs (PruneWidthPeak)'),
@@ -625,7 +635,9 @@ class AddTree(bpy.types.Operator):
             box.label("Branch Splitting:")
             box.prop(self, 'levels')
             box.prop(self, 'baseSplits')
-            box.prop(self, 'baseSize')
+            row = box.row()
+            row.prop(self, 'baseSize')
+            row.prop(self, 'baseSize_s')
             box.prop(self, 'splitHeight')
             box.prop(self, 'splitBias')
             box.prop(self, 'splitByLen')
@@ -676,7 +688,9 @@ class AddTree(bpy.types.Operator):
             box.label("Pruning:")
             box.prop(self, 'prune')
             box.prop(self, 'pruneRatio')
-            box.prop(self, 'pruneWidth')
+            row = box.row()
+            row.prop(self, 'pruneWidth')
+            row.prop(self, 'pruneBase')
             box.prop(self, 'pruneWidthPeak')
             
             row = box.row()

@@ -907,7 +907,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
 def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, currentScale, curve, curveBack, curveRes,
                     deleteSpline, forceSprout, handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
-                    prunePowerLow, pruneRatio, pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
+                    prunePowerLow, pruneRatio, pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                     splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, nrings, splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
@@ -1002,9 +1002,9 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             # Check each endpoint to see if it is inside
             for s in splineList:
                 coordMag = (s.spline.bezier_points[-1].co.xy).length
-                ratio = (scaleVal - s.spline.bezier_points[-1].co.z) / (scaleVal * max(1 - baseSize, 1e-6))
+                ratio = (scaleVal - s.spline.bezier_points[-1].co.z) / (scaleVal * max(1 - pruneBase, 1e-6))
                 # Don't think this if part is needed
-                if (n == 0) and (s.spline.bezier_points[-1].co.z < baseSize * scaleVal):
+                if (n == 0) and (s.spline.bezier_points[-1].co.z < pruneBase * scaleVal):
                     insideBool = True  # Init to avoid UnboundLocalError later
                 else:
                     insideBool = (
@@ -1033,16 +1033,9 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             # If leaves is -ve then we need to make sure the only point which sprouts is the end of the spline
             if not st.children:
                 tVals = [1.0]
-            # If this is the trunk then we need to remove some of the points because of baseSize
-            if n == 0:
-                trimNum = int(baseSize * (len(tVals) + 1))
-                tVals = tVals[trimNum:]
-            
-#            baseSize_s = .25
-#            sSize = baseSize_s
-#            if n > 0:
-#                trimNum = int(sSize * (len(tVals) + 1))
-#                tVals = tVals[trimNum:]
+            # remove some of the points because of baseSize
+            trimNum = int(baseSize * (len(tVals) + 1))
+            tVals = tVals[trimNum:]
             
             #grow branches in rings
             if (n == 0) and (nrings > 0):
@@ -1142,6 +1135,7 @@ def addTree(props):
     branchDist = props.branchDist
     nrings = props.nrings
     baseSize = props.baseSize
+    baseSize_s = props.baseSize_s
     splitHeight = props.splitHeight
     splitBias = props.splitBias
     ratio = props.ratio
@@ -1160,6 +1154,7 @@ def addTree(props):
     scaleV0 = props.scaleV0#
     prune = props.prune#
     pruneWidth = props.pruneWidth#
+    pruneBase = props.pruneBase
     pruneWidthPeak = props.pruneWidthPeak#
     prunePowerLow = props.prunePowerLow#
     prunePowerHigh = props.prunePowerHigh#
@@ -1233,7 +1228,8 @@ def addTree(props):
     # Fix the scale of the tree now
     scaleVal = scale + uniform(-scaleV,scaleV)
     scaleVal += copysign(1e-6, scaleVal)  # Move away from zero to avoid div by zero
-
+    
+    pruneBase = min(pruneBase, baseSize)
     # If pruning is turned on we need to draw the pruning envelope
     if prune:
         enHandle = 'VECTOR'
@@ -1251,7 +1247,7 @@ def addTree(props):
             newSpline.bezier_points.add()
             newPoint = newSpline.bezier_points[-1]
             ratioVal = (c+1)/(enNum)
-            zVal = scaleVal - scaleVal*(1-baseSize)*ratioVal
+            zVal = scaleVal - scaleVal*(1-pruneBase)*ratioVal
             newPoint.co = Vector((scaleVal*pruneWidth*shapeRatio(9,ratioVal,pruneWidthPeak,prunePowerHigh,prunePowerLow),0,zVal))
             (newPoint.handle_right_type,newPoint.handle_left_type) = (enHandle,enHandle)
         newSpline = enCu.splines.new('BEZIER')
@@ -1263,7 +1259,7 @@ def addTree(props):
             newSpline.bezier_points.add()
             newPoint = newSpline.bezier_points[-1]
             ratioVal = (c+1)/(enNum)
-            zVal = scaleVal - scaleVal*(1-baseSize)*ratioVal
+            zVal = scaleVal - scaleVal*(1-pruneBase)*ratioVal
             newPoint.co = Vector((0,scaleVal*pruneWidth*shapeRatio(9,ratioVal,pruneWidthPeak,prunePowerHigh,prunePowerLow),zVal))
             (newPoint.handle_right_type,newPoint.handle_left_type) = (enHandle,enHandle)
 
@@ -1301,6 +1297,12 @@ def addTree(props):
                                       levels, n, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
                                       taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
                                       useOldDownAngle, useParentAngle)
+        
+        #change base size for each level
+        if n > 0:
+            baseSize *= baseSize_s #decrease at each level
+        if (n == levels - 1):
+            baseSize = 0
 
         childP = []
         # Now grow each of the stems in the list of those to be extended
@@ -1330,7 +1332,7 @@ def addTree(props):
                                                   handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
                                                   originalCurvV, originalHandleL, originalHandleR, originalLength,
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
-                                                  pruneWidth, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
+                                                  pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, 
                                                   branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown)
 
