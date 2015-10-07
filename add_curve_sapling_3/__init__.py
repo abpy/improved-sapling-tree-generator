@@ -187,7 +187,20 @@ class AddTree(bpy.types.Operator):
     bl_idname = "curve.tree_add"
     bl_label = "Sapling: Add Tree"
     bl_options = {'REGISTER', 'UNDO'}
-
+    
+    def objectList(self, context):
+        objects = []
+        bObjects = bpy.data.objects
+#        try:
+#            bObjects = bpy.data.objects
+#        except AttributeError:
+#            pass
+#        else:
+        for obj in bObjects:
+            if (obj.type in ['MESH', 'CURVE', 'SURFACE']) and (obj.name not in ['tree', 'leaves']):
+                objects.append((obj.name, obj.name, ""))
+        
+        return objects
 
     def update_tree(self, context):
         self.do_update = True
@@ -483,6 +496,10 @@ class AddTree(bpy.types.Operator):
         description='The shape of the leaves, rectangular are UV mapped',
         items=(('hex', 'Hexagonal', '0'), ('rect', 'Rectangular', '1'), ('dFace', 'DupliFaces', '2'), ('dVert', 'DupliVerts', '3')),
         default='hex', update=update_tree)
+    leafDupliObj = EnumProperty(name='Leaf Object',
+        description='Object to use for leaf instancing if Leaf Shape is DupliFaces or DupliVerts',
+        items=objectList,
+        update=update_tree)
     
 #    bend = FloatProperty(name='Leaf Bend',
 #        description='The proportion of bending applied to the leaf (Bend)',
@@ -585,7 +602,7 @@ class AddTree(bpy.types.Operator):
             # Unfortunately as_keyword doesn't work with vector properties,
             # so we need something custom. This is it
             data = []
-            for a, b in (self.as_keywords(ignore=("chooseSet", "presetName", "limitImport", "do_update"))).items():
+            for a, b in (self.as_keywords(ignore=("chooseSet", "presetName", "limitImport", "do_update", "leafDupliObj"))).items():
                 # If the property is a vector property then add the slice to the list
                 try:
                     len(b)
@@ -702,6 +719,7 @@ class AddTree(bpy.types.Operator):
             box.label("Leaves:")
             box.prop(self, 'showLeaves')
             box.prop(self, 'leafShape')
+            box.prop(self, 'leafDupliObj')
             box.prop(self, 'leaves')
             box.prop(self, 'leafDist')
             

@@ -508,6 +508,9 @@ def genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,loc,quat,offset,index
         leafScale = leafScale * (1 - f * leafScaleT)
         
     leafScale = leafScale * uniform(1 - leafScaleV, 1 + leafScaleV)
+    
+    if leafShape == 'dFace':
+        leafScale = leafScale * .1
 
     # If the bending of the leaves is used we need to rotate them differently
     if (bend != 0.0) and (leaves >= 0):
@@ -872,7 +875,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             branchL = p.lengthPar * lMax * shapeRatio(shape, (1 - p.stemOffset) / (1 - baseSize), custom=customShape)
             childStems = branches[2] * (0.2 + 0.8 * (branchL / p.lengthPar) / lMax)
         else:
-            branchL = p.lengthPar * lMax * shapeRatio(shapeS, (1 - p.stemOffset))
+            branchL = p.lengthPar * lMax * shapeRatio(shapeS, (1 - p.stemOffset) / (1 - baseSize))
             childStems = branches[min(3, n + 1)] * (1.0 - 0.5 * p.stemOffset)
 
         if (storeN == levels - 1):
@@ -1168,6 +1171,7 @@ def addTree(props):
     leafScaleT = props.leafScaleT
     leafScaleV = props.leafScaleV
     leafShape = props.leafShape
+    leafDupliObj = props.leafDupliObj
     bend = props.bend#
     leafangle = props.leafangle
     horzLeaves = props.horzLeaves
@@ -1372,7 +1376,25 @@ def addTree(props):
             #set vertex normals for dupliVerts
             if leafShape == 'dVert':
                 leafMesh.vertices.foreach_set('normal',leafNormals)
-
+            
+            # enable duplication
+            if leafShape == 'dFace':
+                leafObj.dupli_type = "FACES"
+                leafObj.use_dupli_faces_scale = True
+                leafObj.dupli_faces_scale = 10.0
+                try:
+                    bpy.data.objects[leafDupliObj].parent = leafObj
+                except KeyError:
+                    pass
+            elif leafShape == 'dVert':
+                leafObj.dupli_type = "VERTS"
+                leafObj.use_dupli_vertices_rotation = True
+                try:
+                    bpy.data.objects[leafDupliObj].parent = leafObj
+                except KeyError:
+                    pass
+            
+            #add leaf UVs
             if leafShape == 'rect':
                 leafMesh.uv_textures.new("leafUV")
                 uvlayer = leafMesh.uv_layers.active.data
