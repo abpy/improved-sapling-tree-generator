@@ -12,6 +12,8 @@ The rotation method can be changed with the 'Branching Mode' property
 
 New leaf rotation options can set the leaf orientation so that the leaves face upwards and outwards in a much more realistic way.
 
+An object can now be set to use for leaves with dupliverts or duplifaces
+
 ####Change Log
 * Rearranged Interface
 * Moved radius settings to a seperate panel
