@@ -33,7 +33,8 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * leaf scale taper works for palmate compound leaves (negative number of leaves)
 * leaf bend removed, is set to zero for old presets with leaf bend
 * Length variation now affects split branch stems individually
-* Down angle is calculated differently and should be easier to use, the old method is available.
+* Down angle is calculated differently and should be easier to use, the old method is still available.
+* (10-12-15) changes to improve split angle, for levels > 0, this results in the angle being a third as much as before, but more like the angle of trunk splits
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
