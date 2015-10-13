@@ -39,7 +39,7 @@ xAxis = Vector((1,0,0))
 
 # This class will contain a part of the tree which needs to be extended and the required tree parameters
 class stemSpline:
-    def __init__(self,spline,curvature,curvatureV,attractUp,segments,maxSegs,segLength,childStems,stemRadStart,stemRadEnd,splineNum, ofst):
+    def __init__(self,spline,curvature,curvatureV,attractUp,segments,maxSegs,segLength,childStems,stemRadStart,stemRadEnd,splineNum,ofst,pquat):
         self.spline = spline
         self.p = spline.bezier_points[-1]
         self.curv = curvature
@@ -53,6 +53,7 @@ class stemSpline:
         self.radE = stemRadEnd
         self.splN = splineNum
         self.offsetLen = ofst
+        self.patentQuat = pquat
     # This method determines the quaternion of the end of the spline
     def quat(self):
         if len(self.spline.bezier_points) == 1:
@@ -163,11 +164,7 @@ def declination(quat):
 # Returns the spreading angle
 #horizontal spliting
 def spreadAng(splitAng, splitAngV):
-    #old = radians(choice([-1,1])*(20 + 0.75*(30 + abs(dec - 90))*random()**2))
-    
-    splitAng = max(0, splitAng)
-    new = choice([-1,1]) * (splitAng + uniform(-splitAngV,splitAngV)) * 3  # *3 for wider flater branches
-    return new
+    return choice([-1,1]) * (splitAng + uniform(-splitAngV,splitAngV))
 
 # Determines the angle of upward rotation of a segment due to attractUp
 def curveUp(attractUp,quat,curveRes):
@@ -307,6 +304,22 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,hType,splineToBone,
         dirv = Euler((edir[0], edir[1], d), 'XYZ')
         dir = dirv.to_quaternion()
     
+#    #parent weight
+#    if n > 0:
+#        d1 = zAxis.copy()
+#        d2 = zAxis.copy()
+#        d1.rotate(dir)
+#        d2.rotate(stem.patentQuat)
+#        
+#        fac = kp * degrees(stem.curvV) * pi
+#        
+#        x = d1[0] + ((d2[0] - d1[0]) * fac)
+#        y = d1[1] + ((d2[1] - d1[1]) * fac)
+#        z = d1[2] + ((d2[2] - d1[2]) * fac)
+#        
+#        d3 = Vector((x, y, z))
+#        dir = d3.to_track_quat('Z','Y')
+    
     # If the stem splits, we need to add new splines etc
     if numSplit > 0:
         # Get the curve data
@@ -314,7 +327,10 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,hType,splineToBone,
         cu = bpy.data.curves[cuData]
 
         #calc angles
-        angle = splitAng + uniform(-splitAngV, splitAngV)
+        angle = choice([-1,1]) * (splitAng + uniform(-splitAngV, splitAngV))
+        if n > 0:
+            #make branches flatter
+            angle *= max(1 - declination(dir) / 90, 0) * .67 + .33
         spreadangle = spreadAng(splitAng, splitAngV)
         branchRotMat = Matrix.Rotation(radians(uniform(0, 360)),3,'Z')
         
@@ -378,7 +394,7 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,hType,splineToBone,
             # If this isn't the last point on a stem, then we need to add it to the list of stems to continue growing
             if stem.seg != stem.segMax:
                 #nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.vertAtt,stem.seg+1,stem.segMax,stem.segL,stem.children,stem.radS,stem.radE,len(cu.splines)-1,ofst)
-                nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.vertAtt,stem.seg+1,stem.segMax,stemL,stem.children,stem.radS * bScale,stem.radE * bScale,len(cu.splines)-1,ofst)
+                nstem = stemSpline(newSpline,stem.curv,stem.curvV,stem.vertAtt,stem.seg+1,stem.segMax,stemL,stem.children,stem.radS * bScale,stem.radE * bScale,len(cu.splines)-1,ofst, stem.quat())
                 nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
                 splineList.append(nstem)
                 splineToBone.append('bone'+(str(stem.splN)).rjust(3,'0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3,'0'))
@@ -490,8 +506,8 @@ def genLeafMesh(leafScale,leafScaleX,leafScaleT,leafScaleV,loc,quat,offset,index
     if leaves >= 0:
         #downRotMat = Matrix.Rotation(downAngle+uniform(-downAngleV,downAngleV),3,'X')
         
-        if downAngleV < 0.0:
-            downV = downAngleV * offset
+        if downAngleV > 0.0:
+            downV = -downAngleV * offset
         else:
             downV = uniform(-downAngleV, downAngleV)
         downRotMat = Matrix.Rotation(downAngle + downV, 3, 'X')
@@ -734,7 +750,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, l
     newPoint.radius = startRad * rootFlare
     addstem(
         stemSpline(newSpline, curve[0] / curveRes[0], curveV[0] / curveRes[0], attractUp[0], 0, curveRes[0], branchL / curveRes[0],
-                   childStems, startRad, endRad, 0, 0))
+                   childStems, startRad, endRad, 0, 0, None)) ##Quaternion((0, 0, 0, 0))
 
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
@@ -822,8 +838,10 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             else:
                 downV = uniform(-downAngleV[n], downAngleV[n])
         else:
-            downV = downV = max(0, downAngleV[n])
-            downV = -downV * (1 - (1 - p.offset) / (1 - baseSize)) #(110, 80) = (60, -50)
+            if downAngleV[n] < 0.0:
+                downV = uniform(-downAngleV[n], downAngleV[n])
+            else:
+                downV = -downAngleV[n] * (1 - (1 - p.offset) / (1 - baseSize)) #(110, 80) = (60, -50)
         downRotMat = Matrix.Rotation(downAngle[n] + downV, 3, 'X')
         
         if p.offset == 1:
@@ -903,7 +921,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         # Add the new stem to list of stems to grow and define which bone it will be parented to
         addstem(
             stemSpline(newSpline, curveVal, curveVar, attractUp[n], 0, curveRes[n], branchL / curveRes[n], childStems,
-                       startRad, endRad, len(cu.splines) - 1, 0))
+                       startRad, endRad, len(cu.splines) - 1, 0, p.quat))
         addsplinetobone(p.parBone)
 
 
