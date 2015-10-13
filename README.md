@@ -35,6 +35,7 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * Length variation now affects split branch stems individually
 * Down angle is calculated differently and should be easier to use, the old method is still available.
 * (10-12-15) changes to improve split angle, for levels > 0, this results in the angle being a third as much as before, but more like the angle of trunk splits
+* leaf down angle now works like the new branch down angle, and negative down angle variation is random
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
