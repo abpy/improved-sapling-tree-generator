@@ -303,19 +303,19 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,hType,splineToBone,
         d = anglemean(edir[2], d, (kp * outAtt))
         dirv = Euler((edir[0], edir[1], d), 'XYZ')
         dir = dirv.to_quaternion()
-    
-#    #parent weight
-#    if n > 0:
+        
+    #parent weight
+    #parWeight = kp * degrees(stem.curvV) * pi
+#    parWeight = parWeight * kp
+#    if (n > 1) and (parWeight != 0):
 #        d1 = zAxis.copy()
 #        d2 = zAxis.copy()
 #        d1.rotate(dir)
 #        d2.rotate(stem.patentQuat)
 #        
-#        fac = kp * degrees(stem.curvV) * pi
-#        
-#        x = d1[0] + ((d2[0] - d1[0]) * fac)
-#        y = d1[1] + ((d2[1] - d1[1]) * fac)
-#        z = d1[2] + ((d2[2] - d1[2]) * fac)
+#        x = d1[0] + ((d2[0] - d1[0]) * parWeight)
+#        y = d1[1] + ((d2[1] - d1[1]) * parWeight)
+#        z = d1[2] + ((d2[2] - d1[2]) * parWeight)
 #        
 #        d3 = Vector((x, y, z))
 #        dir = d3.to_track_quat('Z','Y')
