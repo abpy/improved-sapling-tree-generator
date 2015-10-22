@@ -371,6 +371,7 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,hType,splineToBone,
             curveUpAng = curveUp(stem.vertAtt,dirVec.to_track_quat('Z','Y'),stem.segMax)
             upRotMat = Matrix.Rotation(-curveUpAng,3,upRotAxis)
             dirVec.rotate(upRotMat)
+            
             # Make the growth vec the length of a stem segment
             dirVec.normalize()
             
@@ -431,12 +432,14 @@ def growSpline(n,stem,numSplit,splitAng,splitAngV,splineList,hType,splineToBone,
         dirVec.rotate(dir)
         
         stem.splitlast = 0#numSplit #keep track of numSplit for next stem
-        
+    
+    # Introduce upward curvature
     upRotAxis = xAxis.copy()
     upRotAxis.rotate(dirVec.to_track_quat('Z','Y'))
     curveUpAng = curveUp(stem.vertAtt,dirVec.to_track_quat('Z','Y'),stem.segMax)
     upRotMat = Matrix.Rotation(-curveUpAng,3,upRotAxis)
     dirVec.rotate(upRotMat)
+    
     dirVec.normalize()
     dirVec *= stem.segL * tf
 
@@ -757,6 +760,9 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, ratioPower, resU,
                     rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
                    useOldDownAngle,useParentAngle):
+    
+    #prevent baseSize from going to 1.0
+    baseSize = min(0.999, baseSize)
     
     # Store the old rotation to allow new stems to be rotated away from the previous one.
     oldRotate = 0
