@@ -458,7 +458,7 @@ class AddTree(bpy.types.Operator):
         default=1.0, update=update_tree)
     leaves = IntProperty(name='Leaves',
         description='Maximum number of leaves per branch (Leaves)',
-        default=25, update=update_tree)
+        min=1, default=25, update=update_tree)
     
     leafDownAngle = FloatProperty(name='Leaf Down Angle',
         description='The angle between a new leaf and the branch it grew from',
