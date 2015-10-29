@@ -130,6 +130,9 @@ def shapeRatio(shape,ratio,pruneWidthPeak=0.0,prunePowerHigh=0.0,prunePowerLow=0
             return (((1 - ratio)/pruneWidthPeak)**prunePowerLow)
         else:
             return 0.0
+    
+    elif shape == 10:
+        return 0.5 + 0.5 * (1 - ratio)
 
 # This function determines the actual number of splits at a given point using the global error
 def splits(n):
@@ -847,7 +850,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             if downAngleV[n] < 0.0:
                 downV = uniform(-downAngleV[n], downAngleV[n])
             else:
-                downV = -downAngleV[n] * (1 - (1 - p.offset) / (1 - baseSize)) #(110, 80) = (60, -50)
+                downV = -downAngleV[n] * (1 - (1 - p.offset) / (1 - baseSize)) ** 2 #(110, 80) = (60, -50)
         downRotMat = Matrix.Rotation(downAngle[n] + downV, 3, 'X')
         
         if p.offset == 1:
