@@ -38,6 +38,7 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * leaf down angle now works like the new branch down angle, and negative down angle variation is random
 * down angle variation is now on a curve so it affects branches less at the bottom of the tree
 * changed order of shapes, added Inverse Tapered Cylindrical shape
+* consistent method of calculating the number of child stems and leaves, and more even distribution
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
