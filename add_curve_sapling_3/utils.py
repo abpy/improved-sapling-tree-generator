@@ -893,24 +893,27 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         
         newPoint.handle_right = p.co + tempPos
         
-        #length variation inversely proportional to segSplits
+        # Make length variation inversely proportional to segSplits
         lenV = (1 - min(segSplits[n], 1)) * lengthV[n]
+        
+        # Find branch length and the number of child stems.
+        maxbL = scaleVal
+        for l in length[:n+1]:
+            maxbL *= l
         lMax = length[n] * uniform(1 - lenV, 1 + lenV)
         if n == 1:
-            # a special formula is used to find branch length and the number of child stems.
-            # This is also here that the shape is used.
-            branchL = p.lengthPar * lMax * shapeRatio(shape, (1 - p.stemOffset) / (1 - baseSize), custom=customShape)
-            childStems = branches[2] * (0.2 + 0.8 * (branchL / p.lengthPar) / lMax)
+            lShape = shapeRatio(shape, (1 - p.stemOffset) / (1 - baseSize), custom=customShape)
         else:
-            branchL = p.lengthPar * lMax * shapeRatio(shapeS, (1 - p.stemOffset) / (1 - baseSize))
-            childStems = branches[min(3, n + 1)] * (1.0 - 0.5 * p.stemOffset)
-
+            lShape = shapeRatio(shapeS, (1 - p.stemOffset) / (1 - baseSize))
+        branchL = p.lengthPar * lMax * lShape
+        childStems = branches[min(3, n + 1)] * (0.2 + 0.8 * (branchL / maxbL)) #(0.2 + 0.8 * lShape)
+        
+        # If this is the last level before leaves then we need to generate the child points differently
         if (storeN == levels - 1):
-            # If this is the last level before leaves then we need to generate the child points differently
             if leaves < 0:
                 childStems = False
             else:
-                childStems = leaves * shapeRatio(leafDist, (1 - p.offset))
+                childStems = leaves * (0.2 + 0.8 * (branchL / maxbL)) * shapeRatio(leafDist, (1 - p.offset))
 
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
 
