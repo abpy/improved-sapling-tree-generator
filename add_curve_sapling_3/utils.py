@@ -851,10 +851,11 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                 downV = uniform(-downAngleV[n], downAngleV[n])
             else:
                 downV = -downAngleV[n] * (1 - (1 - p.offset) / (1 - baseSize)) ** 2 #(110, 80) = (60, -50)
-        downRotMat = Matrix.Rotation(downAngle[n] + downV, 3, 'X')
         
         if p.offset == 1:
             downRotMat = Matrix.Rotation(0, 3, 'X')
+        else:
+            downRotMat = Matrix.Rotation(downAngle[n] + downV, 3, 'X')
         
         # If the -ve flag for rotate is used we need to find which side of the stem the last child point was and then grow in the opposite direction.
         if rotate[n] < 0.0:
