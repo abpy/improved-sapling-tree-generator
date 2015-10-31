@@ -462,31 +462,18 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=1.0, update=update_tree)
     leaves = IntProperty(name='Leaves',
-<<<<<<< HEAD
-        description='Maximum number of leaves per branch (Leaves)',
-        min=1, default=25, update=update_tree)
-=======
         description='Maximum number of leaves per branch (negative values grow leaves from branch tip (palmate compound leaves))',
         default=25, update=update_tree)
->>>>>>> refs/remotes/abpy/master
     
     leafDownAngle = FloatProperty(name='Leaf Down Angle',
         description='The angle between a new leaf and the branch it grew from',
         default=45, update=update_leaves)
     leafDownAngleV = FloatProperty(name='Leaf Down Angle Variation',
-<<<<<<< HEAD
-        description='Variation in the down angle',
-        default=10, update=update_leaves)
-    leafRotate = FloatProperty(name='Leaf Rotate Angle',
-        description='The angle of a new leaf around the one it grew from',
-        default=137.5, update=update_leaves)
-=======
         description='Angle to decrease Down Angle by towards end of parent branch (negative values add random variation)',
         default=10, update=update_tree)
     leafRotate = FloatProperty(name='Leaf Rotate Angle',
         description='The angle of a new leaf around the one it grew from (negative values make leaves rotate opposite from the previous one)',
         default=137.5, update=update_tree)
->>>>>>> refs/remotes/abpy/master
     leafRotateV = FloatProperty(name='Leaf Rotate Angle Variation',
         description='Variation in the rotate angle',
         default=0.0, update=update_leaves)
