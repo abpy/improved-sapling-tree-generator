@@ -541,13 +541,8 @@ class AddTree(bpy.types.Operator):
         default=True, update=update_leaves)
     leafDist = EnumProperty(name='Leaf Distribution',
         description='The way leaves are distributed on branches',
-<<<<<<< HEAD
-        items=shapeList2,
-        default='6', update=update_leaves)
-=======
         items=shapeList4,
         default='6', update=update_tree)
->>>>>>> refs/remotes/abpy/master
     bevelRes = IntProperty(name='Bevel Resolution',
         description='The bevel resolution of the curves',
         min=0,
