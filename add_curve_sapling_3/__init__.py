@@ -68,6 +68,27 @@ shapeList2 = [('0', 'Conical (0)', 'Shape = 0'),
             ('6', 'Inverse Conical (6)', 'Shape = 6'),
             ('7', 'Tend Flame (7)', 'Shape = 7')]
 
+shapeList3 = [('0', 'Conical', ''),
+            ('6', 'Inverse Conical', ''),
+            ('1', 'Spherical', ''),
+            ('2', 'Hemispherical', ''),
+            ('3', 'Cylindrical', ''),
+            ('4', 'Tapered Cylindrical', ''),
+            ('10', 'Inverse Tapered Cylindrical', ''),
+            ('5', 'Flame', ''),
+            ('7', 'Tend Flame', ''),
+            ('8', 'Custom Shape', '')]
+
+shapeList4 = [('0', 'Conical', ''),
+            ('6', 'Inverse Conical', ''),
+            ('1', 'Spherical', ''),
+            ('2', 'Hemispherical', ''),
+            ('3', 'Cylindrical', ''),
+            ('4', 'Tapered Cylindrical', ''),
+            ('10', 'Inverse Tapered Cylindrical', ''),
+            ('5', 'Flame', ''),
+            ('7', 'Tend Flame', '')]
+
 handleList = [('0', 'Auto', 'Auto'),
                 ('1', 'Vector', 'Vector')]
 
@@ -329,11 +350,11 @@ class AddTree(bpy.types.Operator):
         size=4, update=update_tree)
     shape = EnumProperty(name='Shape',
         description='The overall shape of the tree (Shape)',
-        items=shapeList,
+        items=shapeList3,
         default='7', update=update_tree)
     shapeS = EnumProperty(name='Secondary Branches Shape',
         description='The shape of secondary splits',
-        items=shapeList2,
+        items=shapeList4,
         default='4', update=update_tree)
     customShape = FloatVectorProperty(name='Custom Shape',
         description='custom shape branch length at (Base, Middle, Middle Position, Top)',
@@ -520,8 +541,13 @@ class AddTree(bpy.types.Operator):
         default=True, update=update_leaves)
     leafDist = EnumProperty(name='Leaf Distribution',
         description='The way leaves are distributed on branches',
+<<<<<<< HEAD
         items=shapeList2,
         default='6', update=update_leaves)
+=======
+        items=shapeList4,
+        default='6', update=update_tree)
+>>>>>>> refs/remotes/abpy/master
     bevelRes = IntProperty(name='Bevel Resolution',
         description='The bevel resolution of the curves',
         min=0,
