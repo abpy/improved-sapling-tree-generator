@@ -88,11 +88,11 @@ def getPresetpath():
     """Support user defined scripts directory
        Find the first ocurrence of add_curve_sapling/presets in possible script paths
        and return it as preset path"""
-    presetpath = ""
-    for p in bpy.utils.script_paths():
-        presetpath = os.path.join(p, 'addons', 'add_curve_sapling_3', 'presets')
-        if os.path.exists(presetpath):
-            break
+    #presetpath = ""
+    #for p in bpy.utils.script_paths():
+    #    presetpath = os.path.join(p, 'addons', 'add_curve_sapling_3', 'presets')
+    #    if os.path.exists(presetpath):
+    #        break
     #return presetpath
     
     # why not just do this
@@ -351,7 +351,7 @@ class AddTree(bpy.types.Operator):
         min=0,
         default=0, update=update_tree)
     baseSize = FloatProperty(name='Trunk Height',
-        description='Fraction of tree height with no branches (BaseSize)',
+        description='Fraction of tree height with no branches (Base Size)',
         min=0.0,
         max=1.0,
         default=0.4, update=update_tree)
@@ -411,7 +411,7 @@ class AddTree(bpy.types.Operator):
         default=[90, 60, 45, 45],
         size=4, update=update_tree)
     downAngleV = FloatVectorProperty(name='Down Angle Variation',
-        description='Variation in the down angle (nDownAngleV)',
+        description='Angle to decrease Down Angle by towards end of parent branch (negative values add random variation)',
         default=[0, -50, 10, 10],
         size=4, update=update_tree)
     useOldDownAngle = BoolProperty(name='Use old down angle variation',
@@ -420,8 +420,7 @@ class AddTree(bpy.types.Operator):
         description = '(first level) Rotate branch to match parent branch',
         default=True, update=update_tree)
     rotate = FloatVectorProperty(name='Rotate Angle',
-        description=('The angle of a new branch around the one it grew from '
-        '(nRotate)'),
+        description='The angle of a new branch around the one it grew from (negative values make branches rotate opposite from the previous one)',
         default=[137.5, 137.5, 137.5, 137.5],
         size=4, update=update_tree)
     rotateV = FloatVectorProperty(name='Rotate Angle Variation',
@@ -463,18 +462,31 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=1.0, update=update_tree)
     leaves = IntProperty(name='Leaves',
+<<<<<<< HEAD
         description='Maximum number of leaves per branch (Leaves)',
         min=1, default=25, update=update_tree)
+=======
+        description='Maximum number of leaves per branch (negative values grow leaves from branch tip (palmate compound leaves))',
+        default=25, update=update_tree)
+>>>>>>> refs/remotes/abpy/master
     
     leafDownAngle = FloatProperty(name='Leaf Down Angle',
         description='The angle between a new leaf and the branch it grew from',
         default=45, update=update_leaves)
     leafDownAngleV = FloatProperty(name='Leaf Down Angle Variation',
+<<<<<<< HEAD
         description='Variation in the down angle',
         default=10, update=update_leaves)
     leafRotate = FloatProperty(name='Leaf Rotate Angle',
         description='The angle of a new leaf around the one it grew from',
         default=137.5, update=update_leaves)
+=======
+        description='Angle to decrease Down Angle by towards end of parent branch (negative values add random variation)',
+        default=10, update=update_tree)
+    leafRotate = FloatProperty(name='Leaf Rotate Angle',
+        description='The angle of a new leaf around the one it grew from (negative values make leaves rotate opposite from the previous one)',
+        default=137.5, update=update_tree)
+>>>>>>> refs/remotes/abpy/master
     leafRotateV = FloatProperty(name='Leaf Rotate Angle Variation',
         description='Variation in the rotate angle',
         default=0.0, update=update_leaves)
@@ -795,7 +807,7 @@ class AddTree(bpy.types.Operator):
 
 
 def menu_func(self, context):
-    self.layout.operator(AddTree.bl_idname, text="Add Tree", icon='PLUGIN')
+    self.layout.operator(AddTree.bl_idname, text="Add Tree 3.1", icon='PLUGIN')
 
 
 def register():
