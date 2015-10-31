@@ -645,8 +645,8 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape,
         numPoints = len(s.bezier_points) - 1
         splineL = numPoints * ((s.bezier_points[0].co - s.bezier_points[1].co).length)
         # Set the random phase difference of the animation
-        bxOffset = uniform(0, 2 * pi)
-        byOffset = uniform(0, 2 * pi)
+        bxOffset = uniform(0, tau)
+        byOffset = uniform(0, tau)
         # Set the phase multiplier for the spline
         bMult = (s.bezier_points[0].radius / max(splineL, 1e-6)) * (1 / 15) * (1 / frameRate)
         # For all the points in the curve (less the last) add a bone and name it by the spline it will affect
