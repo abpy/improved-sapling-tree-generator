@@ -546,6 +546,7 @@ class AddTree(bpy.types.Operator):
     bevelRes = IntProperty(name='Bevel Resolution',
         description='The bevel resolution of the curves',
         min=0,
+        max=32,
         default=0, update=update_tree)
     resU = IntProperty(name='Curve Resolution',
         description='The resolution along the curves',
