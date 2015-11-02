@@ -815,6 +815,15 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                 bD = ((b[0] * b[0] + b[1] * b[1]) ** .5)
                 bL = br.lengthPar * length[1] * shapeRatio(shape, (1 - br.offset) / (1 - baseSize), custom=customShape)
                 
+                #account for down angle
+                if downAngleV[1] > 0:
+                    downA = downAngle[n] + (-downAngleV[n] * (1 - (1 - br.offset) / (1 - baseSize)) ** 2)
+                else:
+                    downA = downAngle[n]
+                if downA < (.5 * pi):
+                    downA = sin(downA) ** 2
+                    bL *= downA
+                
                 bL *= 0.33
                 v *= (bD + bL)
                 
@@ -1428,12 +1437,33 @@ def addTree(props):
             if leafShape == 'rect':
                 leafMesh.uv_textures.new("leafUV")
                 uvlayer = leafMesh.uv_layers.active.data
+                
+                u1 = .5 * (1 - leafScaleX)
+                u2 = 1 - u1
 
                 for i in range(0, len(leafFaces)):
-                    uvlayer[i*4 + 0].uv = Vector((1, 0))
-                    uvlayer[i*4 + 1].uv = Vector((1, 1))
-                    uvlayer[i*4 + 2].uv = Vector((1 - leafScaleX, 1))
-                    uvlayer[i*4 + 3].uv = Vector((1 - leafScaleX, 0))
+                    uvlayer[i*4 + 0].uv = Vector((u2, 0))
+                    uvlayer[i*4 + 1].uv = Vector((u2, 1))
+                    uvlayer[i*4 + 2].uv = Vector((u1, 1))
+                    uvlayer[i*4 + 3].uv = Vector((u1, 0))
+            
+            elif leafShape == 'hex':
+                leafMesh.uv_textures.new("leafUV")
+                uvlayer = leafMesh.uv_layers.active.data
+                
+                u1 = .5 * (1 - leafScaleX)
+                u2 = 1 - u1
+                
+                for i in range(0, int(len(leafFaces) / 2)):
+                    uvlayer[i*8 + 0].uv = Vector((.5,0))
+                    uvlayer[i*8 + 1].uv = Vector((u1,1/3))
+                    uvlayer[i*8 + 2].uv = Vector((u1,2/3))
+                    uvlayer[i*8 + 3].uv = Vector((.5,1))
+                    
+                    uvlayer[i*8 + 4].uv = Vector((.5,0))
+                    uvlayer[i*8 + 5].uv = Vector((.5,1))
+                    uvlayer[i*8 + 6].uv = Vector((u2,2/3))
+                    uvlayer[i*8 + 7].uv = Vector((u2,1/3))
 
             leafMesh.validate()
 
