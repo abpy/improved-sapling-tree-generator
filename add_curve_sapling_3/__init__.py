@@ -225,6 +225,12 @@ class AddTree(bpy.types.Operator):
 
     def update_tree(self, context):
         self.do_update = True
+        
+    def update_leaves(self, context):
+        if self.showLeaves:
+            self.do_update = True
+        else:
+            self.do_update = False
     
     def no_update_tree(self, context):
         self.do_update = False
@@ -482,7 +488,7 @@ class AddTree(bpy.types.Operator):
     
     leafDownAngle = FloatProperty(name='Leaf Down Angle',
         description='The angle between a new leaf and the branch it grew from',
-        default=45, update=update_tree)
+        default=45, update=update_leaves)
     leafDownAngleV = FloatProperty(name='Leaf Down Angle Variation',
         description='Angle to decrease Down Angle by towards end of parent branch (negative values add random variation)',
         default=10, update=update_tree)
@@ -491,48 +497,48 @@ class AddTree(bpy.types.Operator):
         default=137.5, update=update_tree)
     leafRotateV = FloatProperty(name='Leaf Rotate Angle Variation',
         description='Variation in the rotate angle',
-        default=0.0, update=update_tree)
+        default=0.0, update=update_leaves)
     
     leafScale = FloatProperty(name='Leaf Scale',
         description='The scaling applied to the whole leaf (LeafScale)',
         min=0.0,
-        default=0.17, update=update_tree)
+        default=0.17, update=update_leaves)
     leafScaleX = FloatProperty(name='Leaf Scale X',
         description=('The scaling applied to the x direction of the leaf '
         '(LeafScaleX)'),
         min=0.0,
-        default=1.0, update=update_tree)
+        default=1.0, update=update_leaves)
     leafScaleT = FloatProperty(name='Leaf Scale Taper',
         description='scale leaves toward the tip or base of the patent branch',
         min = -1.0,
         max = 1.0,
-        default=0.0, update=update_tree)
+        default=0.0, update=update_leaves)
     leafScaleV = FloatProperty(name='Leaf Scale Variation',
         description='randomize leaf scale',
         min = 0.0,
         max = 1.0,
-        default=0.0, update=update_tree)
+        default=0.0, update=update_leaves)
     leafShape = EnumProperty(name='Leaf Shape',
         description='The shape of the leaves, rectangular are UV mapped',
         items=(('hex', 'Hexagonal', '0'), ('rect', 'Rectangular', '1'), ('dFace', 'DupliFaces', '2'), ('dVert', 'DupliVerts', '3')),
-        default='hex', update=update_tree)
+        default='hex', update=update_leaves)
     leafDupliObj = EnumProperty(name='Leaf Object',
         description='Object to use for leaf instancing if Leaf Shape is DupliFaces or DupliVerts',
         items=objectList,
-        update=update_tree)
+        update=update_leaves)
     
 #    bend = FloatProperty(name='Leaf Bend',
 #        description='The proportion of bending applied to the leaf (Bend)',
 #        min=0.0,
 #        max=1.0,
-#        default=0.0, update=update_tree)
+#        default=0.0, update=update_leaves)
 
     leafangle = FloatProperty(name='Leaf Angle',
         description='Leaf vertical attraction',
-        default=0.0, update=update_tree)
+        default=0.0, update=update_leaves)
     horzLeaves = BoolProperty(name='Horizontal leaves',
         description='Leaves face upwards',
-        default=True, update=update_tree)
+        default=True, update=update_leaves)
     leafDist = EnumProperty(name='Leaf Distribution',
         description='The way leaves are distributed on branches',
         items=shapeList4,
@@ -540,6 +546,7 @@ class AddTree(bpy.types.Operator):
     bevelRes = IntProperty(name='Bevel Resolution',
         description='The bevel resolution of the curves',
         min=0,
+        max=32,
         default=0, update=update_tree)
     resU = IntProperty(name='Curve Resolution',
         description='The resolution along the curves',
