@@ -40,6 +40,7 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * changed order of shapes, added Inverse Tapered Cylindrical shape
 * consistent method of calculating the number of child stems and leaves, and more even distribution
 * hexagonal leaves now have UVs, and UVs are centered in the map
+* (11-4-15) Merge code from Garfield96, leaf settings can now be changed without updating the tree if leaves is disabled.
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
