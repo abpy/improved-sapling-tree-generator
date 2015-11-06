@@ -283,7 +283,7 @@ class AddTree(bpy.types.Operator):
         description='Shorten trunk splits toward outside of tree',
         min=0.0,
         max=1.0,
-        default=0,update=update_tree)
+        default=0, update=update_tree)
     branches = IntVectorProperty(name='Branches',
         description='The number of branches grown at each level (nBranches)',
         min=0,
@@ -643,7 +643,7 @@ class AddTree(bpy.types.Operator):
             row = box.row()
             row.prop(self, 'presetName')
             # Send the data dict and the file name to the exporter
-            row.operator('sapling.exportdata').data = repr([repr(data),self.presetName])
+            row.operator('sapling.exportdata').data = repr([repr(data), self.presetName])
             row = box.row()
             row.menu('sapling.presetmenu', text='Load Preset')
             row.prop(self, 'limitImport')
