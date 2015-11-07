@@ -54,6 +54,10 @@ class stemSpline:
         self.splN = splineNum
         self.offsetLen = ofst
         self.patentQuat = pquat
+        
+        self.curvSignx = 1
+        self.curvSigny = 1
+        
     # This method determines the quaternion of the end of the spline
     def quat(self):
         if len(self.spline.bezier_points) == 1:
@@ -282,8 +286,13 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     if (n == 0) and (kp <= splitHeight):
         sCurv = 0.0
     
-    curveangle = sCurv + (uniform(-stem.curvV, stem.curvV) * kp)
-    curveVar = uniform(-stem.curvV, stem.curvV) * kp
+    #curveangle = sCurv + (uniform(-stem.curvV, stem.curvV) * kp)
+    #curveVar = uniform(-stem.curvV, stem.curvV) * kp
+    curveangle = sCurv + (uniform(0, stem.curvV) * kp * stem.curvSignx)
+    curveVar = uniform(0, stem.curvV) * kp * stem.curvSigny
+    stem.curvSignx *= -1
+    stem.curvSigny *= -1
+    
     curveVarMat = Matrix.Rotation(curveVar, 3, 'Y')
     
     # First find the current direction of the stem
@@ -293,7 +302,7 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     if n == 0:
         dec = declination(dir) / 180
         dec = dec ** 2
-        tf = (1 - dec * taperCrown * 30)
+        tf = 1 - (dec * taperCrown * 30)
         tf = max(.1, tf)
     else:
         tf = 1.0
