@@ -570,6 +570,23 @@ class AddTree(bpy.types.Operator):
     armAnim = BoolProperty(name='Armature Animation',
         description='Whether animation is added to the armature',
         default=False, update=update_tree)
+    leafAnim = BoolProperty(name='Leaf Animation',
+        description='Whether animation is added to the leaves',
+        default=False, update=update_tree)
+    loopFrames = IntProperty(name='Loop Frames',
+        description='Number of frames to make the animation loop for, zero is disabled, (overides frame rate)',
+        min=0,
+        default=0, update=update_tree)
+
+    af1 = FloatProperty(name='Amplitude',
+        description='Multiplier for noise amplitude',
+        default=1.0, update=update_tree)
+    af2 = FloatProperty(name='Frequency',
+        description='Multiplier for noise fequency',
+        default=1.0, update=update_tree)
+    af3 = FloatProperty(name='Randomness',
+        description='Multiplier for random offset in noise',
+        default=1.0, update=update_tree)
 
     presetName = StringProperty(name='Preset Name',
         description='The name of the preset to be saved',
@@ -781,12 +798,19 @@ class AddTree(bpy.types.Operator):
             row = box.row()
             row.prop(self, 'useArm')
             row.prop(self, 'armAnim')
+            box.prop(self, 'leafAnim')
             
             row = box.row()
             row.prop(self, 'windSpeed')
             row.prop(self, 'windGust')
             
             box.prop(self, 'frameRate')
+            box.prop(self, 'loopFrames')
+            
+            box.label('Leaf Settings:')
+            box.prop(self, 'af1')
+            box.prop(self, 'af2')
+            box.prop(self, 'af3')
 
     def execute(self, context):
         # Ensure the use of the global variables
