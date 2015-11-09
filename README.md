@@ -63,6 +63,8 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * crown taper to shorten trunk splits farther from the center of the tree
 * the height that pruning starts can be set separately from trunk height
 * base size for secondary branch levels
+* leaf animation
+* animation looping
 
 ######notes
 'leaf bend' seems to be broken and probably shouldn't be used, it may be removed soon
