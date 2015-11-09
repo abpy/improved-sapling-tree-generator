@@ -25,7 +25,7 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * fixed how child branch start points are calculated
 * branch length variation now works in the range 0 - 1 and no longer produces errors
 * Leaf orientation is much improved, leaves now face upwards and outwards and have correct normals
-* The last stem on a branch now grows straight out, ignoring down angle. This improves apperance and creates a more realistic crown for central leader trees.
+* The last stem on a branch now grows straight out, ignoring down angle.
 * Taper can now be calculated automaticly based on branch lengths to make the branch radius change linearly from each split level to the next.
 * 'Use UV for mapping' is now enabled by default
 * leaf down angle and rotation now have their own parameters in the leaf panel
@@ -41,6 +41,10 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * consistent method of calculating the number of child stems and leaves, and more even distribution
 * hexagonal leaves now have UVs, and UVs are centered in the map
 * (11-4-15) Merge code from Garfield96, leaf settings can now be changed without updating the tree if leaves is disabled.
+* 11-9 Made changes to armature and animation, these changes are experimental and may be subject to changes
+  * added leaf bones, and animation looping
+  * fix issues with auto curve handels and intersections
+  * changed bending amount based on branch radius
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
