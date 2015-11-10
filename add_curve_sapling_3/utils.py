@@ -613,7 +613,7 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
     return vertsList, facesList, normal, oldRot
 
 
-def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape, leaves, levelCount, splineToBone,
+def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
                     treeOb, windGust, windSpeed, af1, af2, af3, leafAnim, loopFrames):
     arm = bpy.data.armatures.new('tree')
     armOb = bpy.data.objects.new('treeArm', arm)
@@ -649,12 +649,30 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape,
         b = None
         # Get some data about the spline like length and number of points
         numPoints = len(s.bezier_points) - 1
-        splineL = numPoints * ((s.bezier_points[0].co - s.bezier_points[1].co).length)
-        # Set the random phase difference of the animation
-        bxOffset = uniform(0, tau)
-        byOffset = uniform(0, tau)
-        # Set the phase multiplier for the spline
-        bMult_r = (s.bezier_points[0].radius / max(splineL, 1e-6)) * (1 / 15) * (1 / frameRate)
+        
+        # Calculate things for animation
+        if armAnim:
+            splineL = numPoints * ((s.bezier_points[0].co - s.bezier_points[1].co).length)
+            # Set the random phase difference of the animation
+            bxOffset = uniform(0, tau)
+            byOffset = uniform(0, tau)
+            # Set the phase multiplier for the spline
+            #bMult_r = (s.bezier_points[0].radius / max(splineL, 1e-6)) * (1 / 15) * (1 / frameRate)
+            #bMult = degrees(bMult_r)  # This shouldn't have to be in degrees but it looks much better in animation
+            bMult = (1 / max(splineL ** .5, 1e-6)) * (1 / 4)
+            #print((1 / bMult) * tau) #print wavelength in frames
+            
+            if loopFrames == 0:
+                windFreq = bMult * (1 / frameRate)
+                windGustFreq = 0.7 * bMult * (1 / frameRate)
+            else:
+                bMult_l = 1 / ((loopFrames) / tau)
+                fRatio = max(1, round(bMult / bMult_l))
+                windFreq = fRatio * bMult_l
+                windGustFreq = bMult_l
+                #windFreq = 3 * bMult_l
+                #windGustFreq = 2 * bMult_l
+        
         # For all the points in the curve (less the last) add a bone and name it by the spline it will affect
         for n in range(numPoints):
             oldBone = b
@@ -689,23 +707,18 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape,
             # Add the animation to the armature if required
             if armAnim:
                 # Define all the required parameters of the wind sway by the dimension of the spline
-                a0 = 4 * splineL * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
-                #a0 = 1 / max(s.bezier_points[n].radius, 1e-6)
+                #a0 = 4 * splineL * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
+                a0 = (splineL / numPoints) / max(s.bezier_points[n].radius, 1e-6) #probs best
                 a1 = (windSpeed / 50) * a0
                 a2 = (windGust / 50) * a0 + a1 / 2
+                
+                a1 = radians(a1)# / numPoints
+                a2 = radians(a2)# / numPoints
                 
                 # Prevent tree base from rotating
                 if (boneName == "bone000.000") or (boneName == "bone000.001"):
                     a1 = 0
                     a2 = 0
-                
-                if loopFrames == 0:
-                    bMult = degrees(bMult_r)  # This shouldn't have to be in degrees but it looks much better in animation
-                    #print((1 / bMult) * tau) #print wavelength in frames
-                    windGustFreq = 0.7
-                else:
-                    bMult = 1 / ((loopFrames * .333) / tau)
-                    windGustFreq = 0.667
 
                 # Add new fcurves for each sway as well as the modifiers
                 swayX = armOb.animation_data.action.fcurves.new('pose.bones["' + boneName + '"].rotation_euler', 0)
@@ -718,30 +731,26 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape,
                 swayYMod2 = swayY.modifiers.new(type='FNGENERATOR')
 
                 # Set the parameters for each modifier
-                swayXMod1.amplitude = radians(a1) / numPoints
+                swayXMod1.amplitude = a1
                 swayXMod1.phase_offset = bxOffset
-                swayXMod1.phase_multiplier = bMult
+                swayXMod1.phase_multiplier = windFreq
 
-                swayXMod2.amplitude = radians(a2) / numPoints
+                swayXMod2.amplitude = a2
                 swayXMod2.phase_offset = 0.7 * bxOffset
-                swayXMod2.phase_multiplier = windGustFreq * bMult
+                swayXMod2.phase_multiplier = windGustFreq
                 swayXMod2.use_additive = True
 
-                swayYMod1.amplitude = radians(a1) / numPoints
+                swayYMod1.amplitude = a1
                 swayYMod1.phase_offset = byOffset
-                swayYMod1.phase_multiplier = bMult
+                swayYMod1.phase_multiplier = windFreq
 
-                swayYMod2.amplitude = radians(a2) / numPoints
+                swayYMod2.amplitude = a2
                 swayYMod2.phase_offset = 0.7 * byOffset
-                swayYMod2.phase_multiplier = windGustFreq * bMult
+                swayYMod2.phase_multiplier = windGustFreq
                 swayYMod2.use_additive = True
 
     if leaves:
         if leafAnim:
-            leafVertSize = 6
-            if leafShape == 'rect':
-                leafVertSize = 4
-
             for i, cp in enumerate(leafP):
                 bname = "leaf" + str(i)
                 b = arm.edit_bones.new(bname)
@@ -756,14 +765,14 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape,
 
                 if armAnim:
                     # Define all the required parameters of the wind sway by the dimension of the spline
-                    a1 = windSpeed * .05
-                    a2 = windGust * .05
+                    a1 = windSpeed * .25
+                    a2 = windGust * .25
                     a1 *= af1
                     
                     bMult = frameRate * 6
                     bMult *= 1 / max(af2, .001)
                     
-                    ofstRand = 3 * af3
+                    ofstRand = 4 * af3
                     bxOffset = uniform(-ofstRand, ofstRand)
                     byOffset = uniform(-ofstRand, ofstRand)
 
@@ -801,9 +810,6 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape,
                     
         else:
             # If there are leaves we need to assign vertices to their vertex groups
-            leafVertSize = 6
-            if leafShape == 'rect':
-                leafVertSize = 4
             for i, cp in enumerate(leafP):
                 for v in leafMesh.vertices[leafVertSize * i:(leafVertSize * i + leafVertSize)]:
                     leafObj.vertex_groups[cp.parBone].add([v.index], 1.0, 'ADD')
@@ -1553,10 +1559,12 @@ def addTree(props):
                     uvlayer[i*8 + 7].uv = Vector((u2, 1/3))
 
             leafMesh.validate()
+            
+    leafVertSize = {'hex': 6, 'rect': 4, 'dFace': 4, 'dVert': 1}[leafShape]
 
     # If we need and armature we add it
     if useArm:
         # Create the armature and objects
-        create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafShape, leaves, levelCount, splineToBone,
+        create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
                         treeOb, windGust, windSpeed, af1, af2, af3, leafAnim, loopFrames)
     #print(time.time()-startTime)
