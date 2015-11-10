@@ -44,7 +44,7 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * 11-9 Made changes to armature and animation, these changes are experimental and may be subject to changes
   * added leaf bones, and animation looping
   * fix issues with auto curve handels and intersections
-  * changed bending amount based on branch radius
+  * changed how amplitude and frequency are calculated
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
