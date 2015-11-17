@@ -116,6 +116,8 @@ def getPresetpath():
     #        break
     #return presetpath
     
+    #userDir = os.path.join(bpy.utils.script_path_user(), 'presets', 'operator', 'add_curve_sapling_3')
+    
     # why not just do this
     script_file = os.path.realpath(__file__)
     directory = os.path.dirname(script_file)
@@ -556,27 +558,40 @@ class AddTree(bpy.types.Operator):
         description='The type of handles used in the spline',
         items=handleList,
         default='1', update=update_tree)
-    frameRate = FloatProperty(name='Frame Rate',
-        description=('The number of frames per second which can be used to '
-        'adjust the speed of animation'),
-        min=0.001,
-        default=1, update=update_tree)
-    windSpeed = FloatProperty(name='Wind Speed',
-        description='The wind speed to apply to the armature (WindSpeed)',
-        default=2.0, update=update_tree)
-    windGust = FloatProperty(name='Wind Gust',
-        description='The greatest increase over Wind Speed (WindGust)',
-        default=0.0, update=update_tree)
+    
     armAnim = BoolProperty(name='Armature Animation',
         description='Whether animation is added to the armature',
         default=False, update=update_tree)
     leafAnim = BoolProperty(name='Leaf Animation',
         description='Whether animation is added to the leaves',
         default=False, update=update_tree)
+    frameRate = FloatProperty(name='Animation Speed',
+        description=('Adjust speed of animation, relative to scene frame rate'),
+        min=0.001,
+        default=1, update=update_tree)
     loopFrames = IntProperty(name='Loop Frames',
-        description='Number of frames to make the animation loop for, zero is disabled, (overides frame rate)',
+        description='Number of frames to make the animation loop for, zero is disabled',
         min=0,
         default=0, update=update_tree)
+    
+#    windSpeed = FloatProperty(name='Wind Speed',
+#        description='The wind speed to apply to the armature',
+#        default=2.0, update=update_tree)
+#    windGust = FloatProperty(name='Wind Gust',
+#        description='The greatest increase over Wind Speed',
+#        default=0.0, update=update_tree)
+    
+    wind= FloatProperty(name='Overall Wind Strength',
+        description='The intensity of the wind to apply to the armature',
+        default=1.0, update=update_tree)
+
+    gust = FloatProperty(name='Wind Gust Strength',
+        description='The amount of directional movement, (from the positive Y direction)',
+        default=1.0, update=update_tree)
+    
+    gustF = FloatProperty(name='Wind Gust Fequency',
+        description='The Fequency of directional movement',
+        default=0.075, update=update_tree)
 
     af1 = FloatProperty(name='Amplitude',
         description='Multiplier for noise amplitude',
@@ -585,8 +600,8 @@ class AddTree(bpy.types.Operator):
         description='Multiplier for noise fequency',
         default=1.0, update=update_tree)
     af3 = FloatProperty(name='Randomness',
-        description='Multiplier for random offset in noise',
-        default=1.0, update=update_tree)
+        description='Random offset in noise',
+        default=4.0, update=update_tree)
 
     presetName = StringProperty(name='Preset Name',
         description='The name of the preset to be saved',
@@ -795,19 +810,26 @@ class AddTree(bpy.types.Operator):
             box = layout.box()
             box.label("Armature and Animation:")
             
-            row = box.row()
-            row.prop(self, 'useArm')
-            row.prop(self, 'armAnim')
-            box.prop(self, 'leafAnim')
+            box.prop(self, 'useArm')
             
             row = box.row()
-            row.prop(self, 'windSpeed')
-            row.prop(self, 'windGust')
+            row.prop(self, 'armAnim')
+            row.prop(self, 'leafAnim')
             
             box.prop(self, 'frameRate')
             box.prop(self, 'loopFrames')
             
-            box.label('Leaf Settings:')
+            #row = box.row()
+            #row.prop(self, 'windSpeed')
+            #row.prop(self, 'windGust')
+            
+            box.label('Wind Settings:')
+            box.prop(self, 'wind')
+            row = box.row()
+            row.prop(self, 'gust')
+            row.prop(self, 'gustF')
+            
+            box.label('Leaf Wind Settings:')
             box.prop(self, 'af1')
             box.prop(self, 'af2')
             box.prop(self, 'af3')
