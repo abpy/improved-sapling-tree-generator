@@ -28,8 +28,8 @@ bl_info = {
     "category": "Add Curve"}
 
 if "bpy" in locals():
-    import imp
-    imp.reload(utils)
+    import importlib
+    importlib.reload(utils)
 else:
     from add_curve_sapling_3 import utils
 
@@ -50,16 +50,6 @@ from add_curve_sapling_3.utils import *
 useSet = False
 
 shapeList = [('0', 'Conical (0)', 'Shape = 0'),
-            ('1', 'Spherical (1)', 'Shape = 1'),
-            ('2', 'Hemispherical (2)', 'Shape = 2'),
-            ('3', 'Cylindrical (3)', 'Shape = 3'),
-            ('4', 'Tapered Cylindrical (4)', 'Shape = 4'),
-            ('5', 'Flame (5)', 'Shape = 5'),
-            ('6', 'Inverse Conical (6)', 'Shape = 6'),
-            ('7', 'Tend Flame (7)', 'Shape = 7'),
-            ('8', 'Custom Shape (8)', 'Shape = 8')]
-
-shapeList2 = [('0', 'Conical (0)', 'Shape = 0'),
             ('1', 'Spherical (1)', 'Shape = 1'),
             ('2', 'Hemispherical (2)', 'Shape = 2'),
             ('3', 'Cylindrical (3)', 'Shape = 3'),
@@ -116,13 +106,27 @@ def getPresetpath():
     #        break
     #return presetpath
     
-    #userDir = os.path.join(bpy.utils.script_path_user(), 'presets', 'operator', 'add_curve_sapling_3')
-    
     # why not just do this
     script_file = os.path.realpath(__file__)
     directory = os.path.dirname(script_file)
     directory = os.path.join(directory, "presets")
     return directory
+
+
+def getPresetpaths():
+    """Return paths for both local and user preset folders"""
+    userDir = os.path.join(bpy.utils.script_path_user(), 'presets', 'operator', 'add_curve_sapling_3')
+    
+    if os.path.isdir(userDir):
+        pass
+    else:
+        os.makedirs(userDir)
+    
+    script_file = os.path.realpath(__file__)
+    directory = os.path.dirname(script_file)
+    localDir = os.path.join(directory, "presets")
+    
+    return (localDir, userDir)
 
 
 class ExportData(bpy.types.Operator):
@@ -134,24 +138,47 @@ class ExportData(bpy.types.Operator):
 
     def execute(self, context):
         # Unpack some data from the input
-        data, filename = eval(self.data)
-        try:
-            # Check whether the file exists by trying to open it.
-            f = open(os.path.join(getPresetpath(), filename + '.py'), 'r')
-            f.close()
-            # If it exists then report an error
-            self.report({'ERROR_INVALID_INPUT'}, 'Preset Already Exists')
+        data, filename, overwrite = eval(self.data)
+
+#        try:
+#            # Check whether the file exists by trying to open it.
+#            f = open(os.path.join(getPresetpaths()[1], filename + '.py'), 'r')
+#            f.close()
+#            # If it exists then report an error
+#            self.report({'ERROR_INVALID_INPUT'}, 'Preset Already Exists')
+#            return {'CANCELLED'}
+#        except IOError:
+#            if data:
+#                # If it doesn't exist, create the file with the required data
+#                f = open(os.path.join(getPresetpaths()[1], filename + '.py'), 'w')
+#                f.write(data)
+#                f.close()
+#                return {'FINISHED'}
+#            else:
+#                return {'CANCELLED'}
+
+        fpath1 = os.path.join(getPresetpaths()[0], filename + '.py')
+        fpath2 = os.path.join(getPresetpaths()[1], filename + '.py')
+        
+        if os.path.exists(fpath1):
+            # If it exists in built-in presets then report an error
+            self.report({'ERROR_INVALID_INPUT'}, 'Can\'t have same name as built-in preset')
             return {'CANCELLED'}
-        except IOError:
+        elif (not os.path.exists(fpath2)) or (os.path.exists(fpath2) and overwrite):
+            #if (it does not exist) or (exists and overwrite) then write file
             if data:
                 # If it doesn't exist, create the file with the required data
-                f = open(os.path.join(getPresetpath(), filename + '.py'), 'w')
+                f = open(os.path.join(getPresetpaths()[1], filename + '.py'), 'w')
                 f.write(data)
                 f.close()
                 return {'FINISHED'}
             else:
                 return {'CANCELLED'}
-
+        else:
+            # If it exists then report an error
+            self.report({'ERROR_INVALID_INPUT'}, 'Preset Already Exists')
+            return {'CANCELLED'}
+            
 
 class ImportData(bpy.types.Operator):
     """This operator handles importing existing presets"""
@@ -164,7 +191,10 @@ class ImportData(bpy.types.Operator):
         # Make sure the operator knows about the global variables
         global settings, useSet
         # Read the preset data into the global settings
-        f = open(os.path.join(getPresetpath(), self.filename), 'r')
+        try:
+            f = open(os.path.join(getPresetpaths()[0], self.filename), 'r')
+        except (FileNotFoundError, IOError):
+            f = open(os.path.join(getPresetpaths()[1], self.filename), 'r')
         settings = f.readline()
         f.close()
         #print(settings)
@@ -192,14 +222,15 @@ class ImportData(bpy.types.Operator):
 
 
 class PresetMenu(bpy.types.Menu):
-    """Create the preset menu by finding all preset files """ \
-    """in the preset directory"""
+    """Create the preset menu by finding all preset files
+    in the preset directory"""
     bl_idname = "sapling.presetmenu"
     bl_label = "Presets"
 
     def draw(self, context):
         # Get all the sapling presets
-        presets = [a for a in os.listdir(getPresetpath()) if a[-3:] == '.py']
+        presets = [a for a in os.listdir(getPresetpaths()[0]) if a[-3:] == '.py']
+        presets.extend([a for a in os.listdir(getPresetpaths()[1]) if a[-3:] == '.py'])
         layout = self.layout
         # Append all to the menu
         for p in presets:
@@ -610,6 +641,9 @@ class AddTree(bpy.types.Operator):
     limitImport = BoolProperty(name='Limit Import',
         description='Limited imported tree to 2 levels & no leaves for speed',
         default=True, update=no_update_tree)
+    overwrite = BoolProperty(name='Overwrite',
+        description='When checked, overwrite existing preset files when saving',
+        default=False, update=no_update_tree)
 
 #    startCurv = FloatProperty(name='Trunk Starting Angle',
 #        description=('The angle between vertical and the starting direction '
@@ -661,7 +695,7 @@ class AddTree(bpy.types.Operator):
             # Unfortunately as_keyword doesn't work with vector properties,
             # so we need something custom. This is it
             data = []
-            for a, b in (self.as_keywords(ignore=("chooseSet", "presetName", "limitImport", "do_update", "leafDupliObj"))).items():
+            for a, b in (self.as_keywords(ignore=("chooseSet", "presetName", "limitImport", "do_update", "overwrite", "leafDupliObj"))).items():
                 # If the property is a vector property then add the slice to the list
                 try:
                     len(b)
@@ -675,7 +709,10 @@ class AddTree(bpy.types.Operator):
             row = box.row()
             row.prop(self, 'presetName')
             # Send the data dict and the file name to the exporter
-            row.operator('sapling.exportdata').data = repr([repr(data), self.presetName])
+            row.operator('sapling.exportdata').data = repr([repr(data), self.presetName, self.overwrite])
+            row = box.row()
+            row.label(" ")
+            row.prop(self, 'overwrite')
             row = box.row()
             row.menu('sapling.presetmenu', text='Load Preset')
             row.prop(self, 'limitImport')
@@ -844,7 +881,7 @@ class AddTree(bpy.types.Operator):
             for a, b in settings.items():
                 setattr(self, a, b)
             if self.limitImport:
-                setattr(self, 'levels', 2)
+                setattr(self, 'levels', min(settings['levels'], 2))
                 setattr(self, 'showLeaves', False)
             useSet = False
         if not self.do_update:

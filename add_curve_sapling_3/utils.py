@@ -709,19 +709,23 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
             if armAnim:
                 # Define all the required parameters of the wind sway by the dimension of the spline
                 #a0 = 4 * splineL * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
-                a0 = (splineL / numPoints) / max(s.bezier_points[n].radius, 1e-6)
+                a0 = 2 * (splineL / numPoints) * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
+                #a0 = (splineL / numPoints) / max(s.bezier_points[n].radius, 1e-6)
                 a1 = (wind / 50) * a0
                 a2 = a1 * .65  #(windGust / 50) * a0 + a1 / 2
                 
-                a1 = radians(a1)  # / numPoints
-                a2 = radians(a2)  # / numPoints
-                
-                #wind bending
                 p = s.bezier_points[n + 1].co - s.bezier_points[n].co
                 p.normalize()
-                ag = radians((wind * gust / 50) * a0)
+                ag = (wind * gust / 50) * a0
                 a3 = -p[0] * ag
                 a4 = p[2] * ag
+                
+                a1 = radians(a1)
+                a2 = radians(a2)
+                a3 = radians(a3)
+                a4 = radians(a4)
+                
+                #wind bending
                 if loopFrames == 0:
                     swayFreq = gustF * (tau / fps) * frameRate  #animSpeed # .075 # 0.02
                 else:
