@@ -47,6 +47,8 @@ An object can now be set to use for leaves with dupliverts or duplifaces
   * changed how amplitude and frequency are calculated
   * directional wind, and new controls for wind animation
 
+* Presets are now saved to the user presets folder
+
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
 * Option to grow branches in rings, like pine trees
