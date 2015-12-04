@@ -317,8 +317,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
         dir = dirv.to_quaternion()
         
     #parent weight
-    #parWeight = kp * degrees(stem.curvV) * pi
-#    parWeight = parWeight * kp
+#    parWeight = kp * degrees(stem.curvV) * pi
+#    #parWeight = parWeight * kp
+#    #parWeight = kp
 #    if (n > 1) and (parWeight != 0):
 #        d1 = zAxis.copy()
 #        d2 = zAxis.copy()
@@ -860,7 +861,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, l
     newPoint.handle_right = Vector((0, 0, 1))
     newPoint.handle_left = Vector((0, 0, -1))
     # (newPoint.handle_right_type, newPoint.handle_left_type) = ('VECTOR', 'VECTOR')
-    branchL = scaleVal * length[0]# * uniform(1 - lengthV[0], 1 + lengthV[0])
+    branchL = scaleVal * length[0] # * uniform(1 - lengthV[0], 1 + lengthV[0])
     childStems = branches[1]
     startRad = branchL * ratio * (scale0 + uniform(-scaleV0, scaleV0))
     endRad = startRad * (1 - taper[0])
@@ -1017,26 +1018,26 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         newPoint.handle_right = p.co + tempPos
         
         # Make length variation inversely proportional to segSplits
-        lenV = (1 - min(segSplits[n], 1)) * lengthV[n]
+        #lenV = (1 - min(segSplits[n], 1)) * lengthV[n]
         
         # Find branch length and the number of child stems.
         maxbL = scaleVal
         for l in length[:n+1]:
             maxbL *= l
-        lMax = length[n] * uniform(1 - lenV, 1 + lenV)
+        lMax = length[n] # * uniform(1 - lenV, 1 + lenV)
         if n == 1:
             lShape = shapeRatio(shape, (1 - p.stemOffset) / (1 - baseSize), custom=customShape)
         else:
             lShape = shapeRatio(shapeS, (1 - p.stemOffset) / (1 - baseSize))
         branchL = p.lengthPar * lMax * lShape
-        childStems = branches[min(3, n + 1)] * (0.2 + 0.8 * (branchL / maxbL)) #(0.2 + 0.8 * lShape)
+        childStems = branches[min(3, n + 1)] * (0.1 + 0.9 * (branchL / maxbL))
         
         # If this is the last level before leaves then we need to generate the child points differently
         if (storeN == levels - 1):
             if leaves < 0:
                 childStems = False
             else:
-                childStems = leaves * (0.2 + 0.8 * (branchL / maxbL)) * shapeRatio(leafDist, (1 - p.offset))
+                childStems = leaves * (0.1 + 0.9 * (branchL / maxbL)) * shapeRatio(leafDist, (1 - p.offset))
 
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
 
@@ -1180,6 +1181,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 currentScale = 0.5 * (currentMax + currentMin)
             if insideBool and ((currentMax - currentMin) == 1):
                 currentMin = 1
+        
         # If the search will halt on the next iteration then we need to make sure we sprout child points to grow the next splines or leaves
         if (((currentMax - currentMin) < 0.005) or not prune) or forceSprout:
             if (n == 0) and (rMode != "original"):
@@ -1222,13 +1224,14 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             startPrune = False
     return ratio, splineToBone
 
+
 #calculate taper automaticly
 def findtaper(length, taper, shape, shapeS, levels, customShape):
     taperS = []
     for i, t in enumerate(length):
         if i == 0:
             shp = 1.0
-        elif i == 1: 
+        elif i == 1:
             shp = shapeRatio(shape, 0, custom=customShape)
         else:
             shp = shapeRatio(shapeS, 0)
@@ -1378,9 +1381,6 @@ def addTree(props):
     for ob in bpy.data.objects:
         ob.select = False
 
-    childP = []
-    stemList = []
-
     # Initialise the tree object and curve and adjust the settings
     cu = bpy.data.curves.new('tree', 'CURVE')
     treeOb = bpy.data.objects.new('tree', cu)
@@ -1431,16 +1431,14 @@ def addTree(props):
             zVal = scaleVal - scaleVal*(1-pruneBase)*ratioVal
             newPoint.co = Vector((0, scaleVal*pruneWidth*shapeRatio(9, ratioVal, pruneWidthPeak, prunePowerHigh, prunePowerLow), zVal))
             (newPoint.handle_right_type, newPoint.handle_left_type) = (enHandle, enHandle)
+    
+    
+    childP = []
+    stemList = []
 
-    leafVerts = []
-    leafFaces = []
-    leafNormals = []
     levelCount = []
-
     splineToBone = deque([''])
     addsplinetobone = splineToBone.append
- 
-    leafMesh = None # in case we aren't creating leaves, we'll still have the variable
 
     # Each of the levels needed by the user we grow all the splines
     for n in range(levels):
@@ -1506,26 +1504,24 @@ def addTree(props):
                                                   branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown)
 
         levelCount.append(len(cu.splines))
-        # If we need to add leaves, we do it here
-        leafP = []
-        if (storeN == levels-1) and leaves:
-            oldRot = 0.0
-            n = min(3, n+1)
-            # For each of the child points we add leaves
-            for cp in childP:
-                # If the special flag is set then we need to add several leaves at the same location
-                if leaves < 0:
-                    oldRot = -leafRotate / 2
-                    for g in range(abs(leaves)):
-                        (vertTemp, faceTemp, normal, oldRot) = genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, cp.co, cp.quat, cp.offset,
-                                                                           len(leafVerts), leafDownAngle, leafDownAngleV, leafRotate, leafRotateV,
-                                                                           oldRot, bend, leaves, leafShape, leafangle, horzLeaves)
-                        leafVerts.extend(vertTemp)
-                        leafFaces.extend(faceTemp)
-                        leafNormals.extend(normal)
-                        leafP.append(cp)
-                # Otherwise just add the leaves like splines.
-                else:
+    
+    # If we need to add leaves, we do it here
+    leafVerts = []
+    leafFaces = []
+    leafNormals = []
+    
+    leafMesh = None # in case we aren't creating leaves, we'll still have the variable
+    
+    leafP = []
+    if leaves:  # (storeN == levels-1) and
+        oldRot = 0.0
+        n = min(3, n+1)
+        # For each of the child points we add leaves
+        for cp in childP:
+            # If the special flag is set then we need to add several leaves at the same location
+            if leaves < 0:
+                oldRot = -leafRotate / 2
+                for g in range(abs(leaves)):
                     (vertTemp, faceTemp, normal, oldRot) = genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, cp.co, cp.quat, cp.offset,
                                                                        len(leafVerts), leafDownAngle, leafDownAngleV, leafRotate, leafRotateV,
                                                                        oldRot, bend, leaves, leafShape, leafangle, horzLeaves)
@@ -1533,73 +1529,83 @@ def addTree(props):
                     leafFaces.extend(faceTemp)
                     leafNormals.extend(normal)
                     leafP.append(cp)
-            # Create the leaf mesh and object, add geometry using from_pydata, edges are currently added by validating the mesh which isn't great
-            leafMesh = bpy.data.meshes.new('leaves')
-            leafObj = bpy.data.objects.new('leaves', leafMesh)
-            bpy.context.scene.objects.link(leafObj)
-            leafObj.parent = treeOb
-            leafMesh.from_pydata(leafVerts, (), leafFaces)
-            
-            #set vertex normals for dupliVerts
-            if leafShape == 'dVert':
-                leafMesh.vertices.foreach_set('normal', leafNormals)
-            
-            # enable duplication
-            if leafShape == 'dFace':
-                leafObj.dupli_type = "FACES"
-                leafObj.use_dupli_faces_scale = True
-                leafObj.dupli_faces_scale = 10.0
-                try:
-                    bpy.data.objects[leafDupliObj].parent = leafObj
-                except KeyError:
-                    pass
-            elif leafShape == 'dVert':
-                leafObj.dupli_type = "VERTS"
-                leafObj.use_dupli_vertices_rotation = True
-                try:
-                    bpy.data.objects[leafDupliObj].parent = leafObj
-                except KeyError:
-                    pass
-            
-            #add leaf UVs
-            if leafShape == 'rect':
-                leafMesh.uv_textures.new("leafUV")
-                uvlayer = leafMesh.uv_layers.active.data
-                
-                u1 = .5 * (1 - leafScaleX)
-                u2 = 1 - u1
+            # Otherwise just add the leaves like splines.
+            else:
+                (vertTemp, faceTemp, normal, oldRot) = genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, cp.co, cp.quat, cp.offset,
+                                                                   len(leafVerts), leafDownAngle, leafDownAngleV, leafRotate, leafRotateV,
+                                                                   oldRot, bend, leaves, leafShape, leafangle, horzLeaves)
+                leafVerts.extend(vertTemp)
+                leafFaces.extend(faceTemp)
+                leafNormals.extend(normal)
+                leafP.append(cp)
+        # Create the leaf mesh and object, add geometry using from_pydata, edges are currently added by validating the mesh which isn't great
+        leafMesh = bpy.data.meshes.new('leaves')
+        leafObj = bpy.data.objects.new('leaves', leafMesh)
+        bpy.context.scene.objects.link(leafObj)
+        leafObj.parent = treeOb
+        leafMesh.from_pydata(leafVerts, (), leafFaces)
 
-                for i in range(0, len(leafFaces)):
-                    uvlayer[i*4 + 0].uv = Vector((u2, 0))
-                    uvlayer[i*4 + 1].uv = Vector((u2, 1))
-                    uvlayer[i*4 + 2].uv = Vector((u1, 1))
-                    uvlayer[i*4 + 3].uv = Vector((u1, 0))
-            
-            elif leafShape == 'hex':
-                leafMesh.uv_textures.new("leafUV")
-                uvlayer = leafMesh.uv_layers.active.data
-                
-                u1 = .5 * (1 - leafScaleX)
-                u2 = 1 - u1
-                
-                for i in range(0, int(len(leafFaces) / 2)):
-                    uvlayer[i*8 + 0].uv = Vector((.5, 0))
-                    uvlayer[i*8 + 1].uv = Vector((u1, 1/3))
-                    uvlayer[i*8 + 2].uv = Vector((u1, 2/3))
-                    uvlayer[i*8 + 3].uv = Vector((.5, 1))
-                    
-                    uvlayer[i*8 + 4].uv = Vector((.5, 0))
-                    uvlayer[i*8 + 5].uv = Vector((.5, 1))
-                    uvlayer[i*8 + 6].uv = Vector((u2, 2/3))
-                    uvlayer[i*8 + 7].uv = Vector((u2, 1/3))
+        #set vertex normals for dupliVerts
+        if leafShape == 'dVert':
+            leafMesh.vertices.foreach_set('normal', leafNormals)
 
-            leafMesh.validate()
-            
+        # enable duplication
+        if leafShape == 'dFace':
+            leafObj.dupli_type = "FACES"
+            leafObj.use_dupli_faces_scale = True
+            leafObj.dupli_faces_scale = 10.0
+            try:
+                bpy.data.objects[leafDupliObj].parent = leafObj
+            except KeyError:
+                pass
+        elif leafShape == 'dVert':
+            leafObj.dupli_type = "VERTS"
+            leafObj.use_dupli_vertices_rotation = True
+            try:
+                bpy.data.objects[leafDupliObj].parent = leafObj
+            except KeyError:
+                pass
+
+        #add leaf UVs
+        if leafShape == 'rect':
+            leafMesh.uv_textures.new("leafUV")
+            uvlayer = leafMesh.uv_layers.active.data
+
+            u1 = .5 * (1 - leafScaleX)
+            u2 = 1 - u1
+
+            for i in range(0, len(leafFaces)):
+                uvlayer[i*4 + 0].uv = Vector((u2, 0))
+                uvlayer[i*4 + 1].uv = Vector((u2, 1))
+                uvlayer[i*4 + 2].uv = Vector((u1, 1))
+                uvlayer[i*4 + 3].uv = Vector((u1, 0))
+
+        elif leafShape == 'hex':
+            leafMesh.uv_textures.new("leafUV")
+            uvlayer = leafMesh.uv_layers.active.data
+
+            u1 = .5 * (1 - leafScaleX)
+            u2 = 1 - u1
+
+            for i in range(0, int(len(leafFaces) / 2)):
+                uvlayer[i*8 + 0].uv = Vector((.5, 0))
+                uvlayer[i*8 + 1].uv = Vector((u1, 1/3))
+                uvlayer[i*8 + 2].uv = Vector((u1, 2/3))
+                uvlayer[i*8 + 3].uv = Vector((.5, 1))
+
+                uvlayer[i*8 + 4].uv = Vector((.5, 0))
+                uvlayer[i*8 + 5].uv = Vector((.5, 1))
+                uvlayer[i*8 + 6].uv = Vector((u2, 2/3))
+                uvlayer[i*8 + 7].uv = Vector((u2, 1/3))
+
+        leafMesh.validate()
+    
     leafVertSize = {'hex': 6, 'rect': 4, 'dFace': 4, 'dVert': 1}[leafShape]
-
+    
     # If we need and armature we add it
     if useArm:
         # Create the armature and objects
         create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
                         treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames)
+    
     #print(time.time()-startTime)
