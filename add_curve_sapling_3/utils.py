@@ -615,7 +615,7 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
 
 
 def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
-                    treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames):
+                    treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm):
     arm = bpy.data.armatures.new('tree')
     armOb = bpy.data.objects.new('treeArm', arm)
     bpy.context.scene.objects.link(armOb)
@@ -627,6 +627,10 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
     arm.use_deform_delay = True
     # Add the armature modifier to the curve
     armMod = treeOb.modifiers.new('windSway', 'ARMATURE')
+    if previewArm:
+        armMod.show_viewport = False
+        arm.draw_type = 'WIRE'
+        treeOb.hide = True
     armMod.use_apply_on_spline = True
     armMod.object = armOb
     armMod.use_bone_envelopes = True
@@ -1337,6 +1341,7 @@ def addTree(props):
     resU = props.resU#
     
     useArm = props.useArm
+    previewArm = props.previewArm
     armAnim = props.armAnim
     leafAnim = props.leafAnim
     frameRate = props.frameRate
@@ -1513,7 +1518,7 @@ def addTree(props):
     leafMesh = None # in case we aren't creating leaves, we'll still have the variable
     
     leafP = []
-    if leaves:  # (storeN == levels-1) and
+    if leaves:
         oldRot = 0.0
         n = min(3, n+1)
         # For each of the child points we add leaves
@@ -1538,6 +1543,7 @@ def addTree(props):
                 leafFaces.extend(faceTemp)
                 leafNormals.extend(normal)
                 leafP.append(cp)
+        
         # Create the leaf mesh and object, add geometry using from_pydata, edges are currently added by validating the mesh which isn't great
         leafMesh = bpy.data.meshes.new('leaves')
         leafObj = bpy.data.objects.new('leaves', leafMesh)
@@ -1606,6 +1612,6 @@ def addTree(props):
     if useArm:
         # Create the armature and objects
         create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
-                        treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames)
+                        treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm)
     
     #print(time.time()-startTime)

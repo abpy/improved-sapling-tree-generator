@@ -593,6 +593,9 @@ class AddTree(bpy.types.Operator):
     armAnim = BoolProperty(name='Armature Animation',
         description='Whether animation is added to the armature',
         default=False, update=update_tree)
+    previewArm = BoolProperty(name='Fast Preview',
+        description='Disable armature modifier, hide tree, and set bone display to wire, for fast playback',
+        default=False, update=update_tree)
     leafAnim = BoolProperty(name='Leaf Animation',
         description='Whether animation is added to the leaves',
         default=False, update=update_tree)
@@ -847,7 +850,9 @@ class AddTree(bpy.types.Operator):
             box = layout.box()
             box.label("Armature and Animation:")
             
-            box.prop(self, 'useArm')
+            row = box.row()
+            row.prop(self, 'useArm')
+            row.prop(self, 'previewArm')
             
             row = box.row()
             row.prop(self, 'armAnim')
