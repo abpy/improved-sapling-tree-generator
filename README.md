@@ -72,6 +72,7 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 * base size for secondary branch levels
 * leaf animation
 * animation looping
+* option to show only the armature for fast animation playback
 
 ######notes
 'leaf bend' seems to be broken and probably shouldn't be used, it may be removed soon
