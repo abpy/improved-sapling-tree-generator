@@ -14,6 +14,8 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 
 An object can now be set to use for leaves with dupliverts or duplifaces
 
+Curves can now be converted into a mesh that uses the skin modifier. With the mesh it is now possible to simplfy the armature greatly reducing the number of bones and the time it takes to generate the armature. You can now set the number of branching levels to make bones for, and the number of bones is each branch.
+
 ####Change Log
 * Rearranged Interface
 * Moved radius settings to a seperate panel
