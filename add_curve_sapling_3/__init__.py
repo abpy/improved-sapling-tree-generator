@@ -595,6 +595,7 @@ class AddTree(bpy.types.Operator):
         default=False, update=update_tree)
     previewArm = BoolProperty(name='Fast Preview',
         description='Disable armature modifier, hide tree, and set bone display to wire, for fast playback',
+        ##Disable skin modifier and hide tree and armature, for fast playback
         default=False, update=update_tree)
     leafAnim = BoolProperty(name='Leaf Animation',
         description='Whether animation is added to the leaves',
@@ -636,6 +637,19 @@ class AddTree(bpy.types.Operator):
     af3 = FloatProperty(name='Randomness',
         description='Random offset in noise',
         default=4.0, update=update_tree)
+    
+    makeMesh = BoolProperty(name='Make Mesh',
+        description='Convert curves to mesh, uses skin modifier, enables armature simplification',
+        default=False, update=update_tree)
+    armLevels = IntProperty(name='Armature Levels',
+        description='Number of branching levels to make bones for, 0 is all levels',
+        min=0,
+        default=0, update=update_tree)
+    boneStep = IntVectorProperty(name='Bone Length',
+        description='Number of stem segments per bone',
+        min=1,
+        default=[1, 1, 1, 1],
+        size=4, update=update_tree)
 
     presetName = StringProperty(name='Preset Name',
         description='The name of the preset to be saved',
@@ -875,6 +889,12 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'af1')
             box.prop(self, 'af2')
             box.prop(self, 'af3')
+            
+            box.label("")
+            box.prop(self, 'makeMesh')
+            box.label("Armature Simplification:")
+            box.prop(self, 'armLevels')
+            box.prop(self, 'boneStep')
 
     def execute(self, context):
         # Ensure the use of the global variables

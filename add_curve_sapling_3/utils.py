@@ -264,6 +264,13 @@ def interpStem(stem, tVals, lPar, parRad, maxOffset, baseSize):
             
     return tempList
 
+# round down bone number
+def roundBone(bone, step):
+    bone_i = bone[:-3]
+    bone_n = int(bone[-3:])
+    bone_n = int(bone_n / step) * step
+    return bone_i + str(bone_n).rjust(3, '0')
+
 # Convert a list of degrees to radians
 def toRad(list):
     return [radians(a) for a in list]
@@ -279,7 +286,7 @@ def anglemean(a1, a2, fac):
 
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown):
+def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown, boneStep):
     
     #curv at base
     sCurv = stem.curv
@@ -411,7 +418,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
                                    stem.radS * bScale, stem.radE * bScale, len(cu.splines)-1, ofst, stem.quat())
                 nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
                 splineList.append(nstem)
-                splineToBone.append('bone'+(str(stem.splN)).rjust(3, '0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3, '0'))
+                bone = 'bone'+(str(stem.splN)).rjust(3, '0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3, '0')
+                bone = roundBone(bone, boneStep[n])
+                splineToBone.append((bone, False, True))
                 
         # The original spline also needs to keep growing so adjust its direction too
         divRotMat = Matrix.Rotation(-angle + curveangle, 3, 'X')
@@ -615,7 +624,7 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
 
 
 def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
-                    treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm):
+                    treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm, armLevels, makeMesh, boneStep):
     arm = bpy.data.armatures.new('tree')
     armOb = bpy.data.objects.new('treeArm', arm)
     bpy.context.scene.objects.link(armOb)
@@ -653,151 +662,173 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
     bpy.ops.object.mode_set(mode='EDIT')
     # For all the splines in the curve we need to add bones at each bezier point
     for i, parBone in enumerate(splineToBone):
-        s = cu.splines[i]
-        b = None
-        # Get some data about the spline like length and number of points
-        numPoints = len(s.bezier_points) - 1
-        
-        # Calculate things for animation
-        if armAnim:
-            splineL = numPoints * ((s.bezier_points[0].co - s.bezier_points[1].co).length)
-            # Set the random phase difference of the animation
-            bxOffset = uniform(0, tau)
-            byOffset = uniform(0, tau)
-            # Set the phase multiplier for the spline
-            #bMult_r = (s.bezier_points[0].radius / max(splineL, 1e-6)) * (1 / 15) * (1 / frameRate)
-            #bMult = degrees(bMult_r)  # This shouldn't have to be in degrees but it looks much better in animation
-            bMult = (1 / max(splineL ** .5, 1e-6)) * (1 / 4)
-            #print((1 / bMult) * tau) #print wavelength in frames
+        if (i < levelCount[armLevels]) or (armLevels == -1) or (not makeMesh):
+            s = cu.splines[i]
+            b = None
+            # Get some data about the spline like length and number of points
+            numPoints = len(s.bezier_points) - 1
             
-            windFreq1 = bMult * animSpeed
-            windFreq2 = 0.7 * bMult * animSpeed
-            if loopFrames != 0:
-                bMult_l = 1 / (loopFrames / tau)
-                fRatio = max(1, round(windFreq1 / bMult_l))
-                fgRatio = max(1, round(windFreq2 / bMult_l))
-                windFreq1 = fRatio * bMult_l
-                windFreq2 = fgRatio * bMult_l
-        
-        # For all the points in the curve (less the last) add a bone and name it by the spline it will affect
-        for n in range(numPoints):
-            oldBone = b
-            boneName = 'bone' + (str(i)).rjust(3, '0') + '.' + (str(n)).rjust(3, '0')
-            b = arm.edit_bones.new(boneName)
-            b.head = s.bezier_points[n].co
-            b.tail = s.bezier_points[n + 1].co
-
-            b.head_radius = s.bezier_points[n].radius
-            b.tail_radius = s.bezier_points[n + 1].radius
-            b.envelope_distance = 0.001  #0.001
-
-            # If there are leaves then we need a new vertex group so they will attach to the bone
-            if not leafAnim:
-                if (len(levelCount) > 1) and (i >= levelCount[-2]) and leafObj:
-                    leafObj.vertex_groups.new(boneName)
-                elif (len(levelCount) == 1) and leafObj:
-                    leafObj.vertex_groups.new(boneName)
+            #find branching level
+            level = 0
+            for l, c in enumerate(levelCount):
+                if i < c:
+                    level = l
+                    break
+            level = min(level, 3)
             
-            # If this is first point of the spline then it must be parented to the level above it
-            if n == 0:
-                if parBone:
-                    b.parent = arm.edit_bones[parBone]
-            # Otherwise, we need to attach it to the previous bone in the spline
-            else:
-                b.parent = oldBone
-                b.use_connect = True
-            # If there isn't a previous bone then it shouldn't be attached
-            if not oldBone:
-                b.use_connect = False
+            step = boneStep[level]
 
-            # Add the animation to the armature if required
+            # Calculate things for animation
             if armAnim:
-                # Define all the required parameters of the wind sway by the dimension of the spline
-                #a0 = 4 * splineL * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
-                a0 = 2 * (splineL / numPoints) * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
-                #a0 = (splineL / numPoints) / max(s.bezier_points[n].radius, 1e-6)
-                a1 = (wind / 50) * a0
-                a2 = a1 * .65  #(windGust / 50) * a0 + a1 / 2
-                
-                p = s.bezier_points[n + 1].co - s.bezier_points[n].co
-                p.normalize()
-                ag = (wind * gust / 50) * a0
-                a3 = -p[0] * ag
-                a4 = p[2] * ag
-                
-                a1 = radians(a1)
-                a2 = radians(a2)
-                a3 = radians(a3)
-                a4 = radians(a4)
-                
-                #wind bending
-                if loopFrames == 0:
-                    swayFreq = gustF * (tau / fps) * frameRate  #animSpeed # .075 # 0.02
+                splineL = numPoints * ((s.bezier_points[0].co - s.bezier_points[1].co).length)
+                # Set the random phase difference of the animation
+                bxOffset = uniform(0, tau)
+                byOffset = uniform(0, tau)
+                # Set the phase multiplier for the spline
+                #bMult_r = (s.bezier_points[0].radius / max(splineL, 1e-6)) * (1 / 15) * (1 / frameRate)
+                #bMult = degrees(bMult_r)  # This shouldn't have to be in degrees but it looks much better in animation
+                bMult = (1 / max(splineL ** .5, 1e-6)) * (1 / 4)
+                #print((1 / bMult) * tau) #print wavelength in frames
+
+                windFreq1 = bMult * animSpeed
+                windFreq2 = 0.7 * bMult * animSpeed
+                if loopFrames != 0:
+                    bMult_l = 1 / (loopFrames / tau)
+                    fRatio = max(1, round(windFreq1 / bMult_l))
+                    fgRatio = max(1, round(windFreq2 / bMult_l))
+                    windFreq1 = fRatio * bMult_l
+                    windFreq2 = fgRatio * bMult_l
+
+            # For all the points in the curve (less the last) add a bone and name it by the spline it will affect
+            nx = 0
+            for n in range(0, numPoints, step):
+                oldBone = b
+                boneName = 'bone' + (str(i)).rjust(3, '0') + '.' + (str(n)).rjust(3, '0')
+                b = arm.edit_bones.new(boneName)
+                b.head = s.bezier_points[n].co
+                nx += step
+                nx = min(nx, numPoints)
+                b.tail = s.bezier_points[nx].co
+
+                b.head_radius = s.bezier_points[n].radius
+                b.tail_radius = s.bezier_points[n + 1].radius
+                b.envelope_distance = 0.001
+
+#                # If there are leaves then we need a new vertex group so they will attach to the bone
+#                if not leafAnim:
+#                    if (len(levelCount) > 1) and (i >= levelCount[-2]) and leafObj:
+#                        leafObj.vertex_groups.new(boneName)
+#                    elif (len(levelCount) == 1) and leafObj:
+#                        leafObj.vertex_groups.new(boneName)
+
+                # If this is first point of the spline then it must be parented to the level above it
+                if n == 0:
+                    if parBone:
+                        b.parent = arm.edit_bones[parBone]
+                # Otherwise, we need to attach it to the previous bone in the spline
                 else:
-                    swayFreq = 1 / (loopFrames / tau)
-                
-                # Prevent tree base from rotating
-                if (boneName == "bone000.000") or (boneName == "bone000.001"):
-                    a1 = 0
-                    a2 = 0
-                    a3 = 0
-                    a4 = 0
+                    b.parent = oldBone
+                    b.use_connect = True
+                # If there isn't a previous bone then it shouldn't be attached
+                if not oldBone:
+                    b.use_connect = False
 
-                # Add new fcurves for each sway as well as the modifiers
-                swayX = armOb.animation_data.action.fcurves.new('pose.bones["' + boneName + '"].rotation_euler', 0)
-                swayY = armOb.animation_data.action.fcurves.new('pose.bones["' + boneName + '"].rotation_euler', 2)
+                # Add the animation to the armature if required
+                if armAnim:
+                    # Define all the required parameters of the wind sway by the dimension of the spline
+                    #a0 = 4 * splineL * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
+                    a0 = 2 * (splineL / numPoints) * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
+                    #a0 = (splineL / numPoints) / max(s.bezier_points[n].radius, 1e-6)
+                    a1 = (wind / 50) * a0
+                    a2 = a1 * .65  #(windGust / 50) * a0 + a1 / 2
 
-                swayXMod1 = swayX.modifiers.new(type='FNGENERATOR')
-                swayXMod2 = swayX.modifiers.new(type='FNGENERATOR')
+                    p = s.bezier_points[nx].co - s.bezier_points[n].co
+                    p.normalize()
+                    ag = (wind * gust / 50) * a0
+                    a3 = -p[0] * ag
+                    a4 = p[2] * ag
 
-                swayYMod1 = swayY.modifiers.new(type='FNGENERATOR')
-                swayYMod2 = swayY.modifiers.new(type='FNGENERATOR')
+                    a1 = radians(a1)
+                    a2 = radians(a2)
+                    a3 = radians(a3)
+                    a4 = radians(a4)
 
-                # Set the parameters for each modifier
-                swayXMod1.amplitude = a1
-                swayXMod1.phase_offset = bxOffset
-                swayXMod1.phase_multiplier = windFreq1
+                    #wind bending
+                    if loopFrames == 0:
+                        swayFreq = gustF * (tau / fps) * frameRate  #animSpeed # .075 # 0.02
+                    else:
+                        swayFreq = 1 / (loopFrames / tau)
 
-                swayXMod2.amplitude = a2
-                swayXMod2.phase_offset = 0.7 * bxOffset
-                swayXMod2.phase_multiplier = windFreq2
-                swayXMod2.use_additive = True
+                    # Prevent tree base from rotating
+                    if (boneName == "bone000.000") or (boneName == "bone000.001"):
+                        a1 = 0
+                        a2 = 0
+                        a3 = 0
+                        a4 = 0
 
-                swayYMod1.amplitude = a1
-                swayYMod1.phase_offset = byOffset
-                swayYMod1.phase_multiplier = windFreq1
+                    # Add new fcurves for each sway as well as the modifiers
+                    swayX = armOb.animation_data.action.fcurves.new('pose.bones["' + boneName + '"].rotation_euler', 0)
+                    swayY = armOb.animation_data.action.fcurves.new('pose.bones["' + boneName + '"].rotation_euler', 2)
 
-                swayYMod2.amplitude = a2
-                swayYMod2.phase_offset = 0.7 * byOffset
-                swayYMod2.phase_multiplier = windFreq2
-                swayYMod2.use_additive = True
-                
-                #wind bending
-                swayYMod3 = swayY.modifiers.new(type='FNGENERATOR')
-                swayYMod3.amplitude = a3
-                swayYMod3.phase_multiplier = swayFreq
-                swayYMod3.value_offset = .6 * a3
-                swayYMod3.use_additive = True
-                
-                swayXMod3 = swayX.modifiers.new(type='FNGENERATOR')
-                swayXMod3.amplitude = a4
-                swayXMod3.phase_multiplier = swayFreq
-                swayXMod3.value_offset = .6 * a4
-                swayXMod3.use_additive = True
+                    swayXMod1 = swayX.modifiers.new(type='FNGENERATOR')
+                    swayXMod2 = swayX.modifiers.new(type='FNGENERATOR')
+
+                    swayYMod1 = swayY.modifiers.new(type='FNGENERATOR')
+                    swayYMod2 = swayY.modifiers.new(type='FNGENERATOR')
+
+                    # Set the parameters for each modifier
+                    swayXMod1.amplitude = a1
+                    swayXMod1.phase_offset = bxOffset
+                    swayXMod1.phase_multiplier = windFreq1
+
+                    swayXMod2.amplitude = a2
+                    swayXMod2.phase_offset = 0.7 * bxOffset
+                    swayXMod2.phase_multiplier = windFreq2
+                    swayXMod2.use_additive = True
+
+                    swayYMod1.amplitude = a1
+                    swayYMod1.phase_offset = byOffset
+                    swayYMod1.phase_multiplier = windFreq1
+
+                    swayYMod2.amplitude = a2
+                    swayYMod2.phase_offset = 0.7 * byOffset
+                    swayYMod2.phase_multiplier = windFreq2
+                    swayYMod2.use_additive = True
+
+                    #wind bending
+                    swayYMod3 = swayY.modifiers.new(type='FNGENERATOR')
+                    swayYMod3.amplitude = a3
+                    swayYMod3.phase_multiplier = swayFreq
+                    swayYMod3.value_offset = .6 * a3
+                    swayYMod3.use_additive = True
+
+                    swayXMod3 = swayX.modifiers.new(type='FNGENERATOR')
+                    swayXMod3.amplitude = a4
+                    swayXMod3.phase_multiplier = swayFreq
+                    swayXMod3.value_offset = .6 * a4
+                    swayXMod3.use_additive = True
 
     if leaves:
-        if leafAnim:
-            for i, cp in enumerate(leafP):
+        bonelist = [b.name for b in arm.edit_bones]
+        vertexGroups = OrderedDict()
+        for i, cp in enumerate(leafP):
+            # find leafs parent bone
+            leafParent = roundBone(cp.parBone, boneStep[armLevels])
+            idx = int(leafParent[4:-4])
+            while leafParent not in bonelist:
+                #find parent bone of parent bone
+                leafParent = splineToBone[idx]
+                idx = int(leafParent[4:-4])
+            
+            if leafAnim:
                 bname = "leaf" + str(i)
                 b = arm.edit_bones.new(bname)
                 b.head = cp.co
                 b.tail = cp.co + Vector((0, 0, .02))
-                b.parent = arm.edit_bones[cp.parBone]
                 b.envelope_distance = 0.0
-
-                leafObj.vertex_groups.new(bname)
-                for v in leafMesh.vertices[leafVertSize * i:(leafVertSize * i + leafVertSize)]:
-                    leafObj.vertex_groups[bname].add([v.index], 1.0, 'ADD')
+                b.parent = arm.edit_bones[leafParent]
+                
+                vertexGroups[bname] = [v.index for v in leafMesh.vertices[leafVertSize * i:(leafVertSize * i + leafVertSize)]]
 
                 if armAnim:
                     # Define all the required parameters of the wind sway by the dimension of the spline
@@ -842,12 +873,15 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
                     swayYMod.scale = bMult
                     swayYMod.strength = a1
                     swayYMod.offset = byOffset
-                    
-        else:
-            # If there are leaves we need to assign vertices to their vertex groups
-            for i, cp in enumerate(leafP):
-                for v in leafMesh.vertices[leafVertSize * i:(leafVertSize * i + leafVertSize)]:
-                    leafObj.vertex_groups[cp.parBone].add([v.index], 1.0, 'ADD')
+            
+            else:
+                if leafParent not in vertexGroups:
+                    vertexGroups[leafParent] = []
+                vertexGroups[leafParent].extend([v.index for v in leafMesh.vertices[leafVertSize * i:(leafVertSize * i + leafVertSize)]])
+        
+        for group in vertexGroups:
+            leafObj.vertex_groups.new(group)
+            leafObj.vertex_groups[group].add(vertexGroups[group], 1.0, 'ADD')
 
     # Now we need the rotation mode to be 'XYZ' to ensure correct rotation
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -880,7 +914,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, l
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
                     downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, ratioPower, resU,
                     rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
-                    useOldDownAngle, useParentAngle):
+                    useOldDownAngle, useParentAngle, boneStep):
     
     #prevent baseSize from going to 1.0
     baseSize = min(0.999, baseSize)
@@ -1062,7 +1096,13 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         addstem(
             stemSpline(newSpline, curveVal, curveVar, attractUp[n], 0, curveRes[n], branchL / curveRes[n], childStems,
                        startRad, endRad, len(cu.splines) - 1, 0, p.quat))
-        addsplinetobone(p.parBone)
+        
+        bone = roundBone(p.parBone, boneStep[n-1])
+        if p.offset == 1:
+            isend = True
+        else:
+            isend = False
+        addsplinetobone((bone, isend))
 
 
 def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, currentScale, curve, curveBack, curveRes,
@@ -1070,7 +1110,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                     splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, nrings,
-                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown):
+                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, boneStep):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -1157,7 +1197,8 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 if (k == int(curveRes[n] / 2 + 0.5)) and (curveBack[n] != 0):
                     spl.curv += 2 * (curveBack[n] / curveRes[n]) #was -4 * 
                 
-                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, handles, splineToBone, closeTip, kp, splitHeight, attractOut[n], stemsegL, lengthV[n], taperCrown)
+                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, handles, splineToBone,
+                           closeTip, kp, splitHeight, attractOut[n], stemsegL, lengthV[n], taperCrown, boneStep)
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
@@ -1358,8 +1399,15 @@ def addTree(props):
     af2 = props.af2
     af3 = props.af3
     
+    makeMesh = props.makeMesh
+    armLevels = props.armLevels
+    boneStep = props.boneStep
+    
     useOldDownAngle = props.useOldDownAngle
     useParentAngle = props.useParentAngle
+    
+    if not makeMesh:
+        boneStep = [1, 1, 1, 1]
     
     #taper
     if autoTaper:
@@ -1468,7 +1516,7 @@ def addTree(props):
                             curveRes, curveV, attractUp, downAngle, downAngleV, leafDist, leaves, length, lengthV,
                             levels, n, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
                             taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
-                            useOldDownAngle, useParentAngle)
+                            useOldDownAngle, useParentAngle, boneStep)
         
         #change base size for each level
         if n > 0:
@@ -1506,7 +1554,7 @@ def addTree(props):
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, 
-                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown)
+                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, boneStep)
 
         levelCount.append(len(cu.splines))
     
@@ -1608,10 +1656,140 @@ def addTree(props):
     
     leafVertSize = {'hex': 6, 'rect': 4, 'dFace': 4, 'dVert': 1}[leafShape]
     
+    #makeMesh = False
+    armLevels = min(armLevels, levels)
+    armLevels -= 1
+    
+    # unpack vars from splineToBone
+    splineToBone1 = splineToBone
+    splineToBone = [s[0] if len(s) > 1 else s for s in splineToBone1]
+    isend = [s[1] if len(s) > 1 else False for s in splineToBone1]
+    issplit =  [s[2] if len(s) > 2 else False for s in splineToBone1]
+    
     # If we need and armature we add it
     if useArm:
         # Create the armature and objects
         create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
-                        treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm)
+                        treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm, armLevels, makeMesh, boneStep)
     
     #print(time.time()-startTime)
+    
+
+    #mesh branches
+    if makeMesh:
+        t1 = time.time()
+
+        treeMesh = bpy.data.meshes.new('treemesh')
+        treeObj = bpy.data.objects.new('treemesh', treeMesh)
+        bpy.context.scene.objects.link(treeObj)
+
+        treeVerts = []
+        treeEdges = []
+        root_vert = []
+        vert_radius = []
+        vertexGroups = OrderedDict()
+        lastVerts = []
+
+        for i, curve in enumerate(cu.splines):
+            points = curve.bezier_points
+            
+            #find branching level
+            level = 0
+            for l, c in enumerate(levelCount):
+                if i < c:
+                    level = l
+                    break
+            level = min(level, 3)
+            
+            step = boneStep[level]
+            vindex = len(treeVerts)
+            
+            p1 = points[0]
+            if isend[i]:
+                parent = lastVerts[int(splineToBone[i][4:-4])]
+                vindex -= 1
+            else:
+                #add first point
+                treeVerts.append(p1.co)
+                root_vert.append(True)
+                vert_radius.append((p1.radius, p1.radius))
+            
+            #add extra vertex for splits
+            if issplit[i]:
+                p2 = points[1]
+                p = evalBez(p1.co, p1.handle_right, p2.handle_left, p2.co, .001)
+                treeVerts.append(p)
+                root_vert.append(False)
+                vert_radius.append((p1.radius, p1.radius)) #(p1.radius * .95, p1.radius * .95)
+                treeEdges.append([vindex,vindex+1])
+                vindex += 1
+
+            #dont make vertex group if above armLevels
+            if (i >= levelCount[armLevels]):
+                idx = i
+                groupName = splineToBone[idx]
+                g = True
+                while groupName not in vertexGroups:
+                    #find parent bone of parent bone
+                    b = splineToBone[idx]
+                    idx = int(b[4:-4])
+                    groupName = splineToBone[idx]
+            else:
+                g = False
+
+            for n, p2 in enumerate(points[1:]):
+                if not g:
+                    groupName = 'bone' + (str(i)).rjust(3, '0') + '.' + (str(n)).rjust(3, '0')
+                    groupName = roundBone(groupName, step)
+                    if groupName not in vertexGroups:
+                        vertexGroups[groupName] = []
+
+                for f in range(1, resU+1):
+                    pos = f / resU
+                    p = evalBez(p1.co, p1.handle_right, p2.handle_left, p2.co, pos)
+                    radius = p1.radius + (p2.radius - p1.radius) * pos
+
+                    treeVerts.append(p)
+                    root_vert.append(False)
+                    vert_radius.append((radius, radius))
+                    
+                    if (isend[i]) and (n == 0) and (f == 1):
+                        edge = [parent, n * resU + f + vindex]
+                    else:
+                        edge = [n * resU + f + vindex - 1, n * resU + f + vindex]
+                    treeEdges.append(edge)
+
+                    #add vert to group
+                    vertexGroups[groupName].append(n * resU + f + vindex - 1)
+                vertexGroups[groupName].append(n * resU + resU + vindex)
+
+                p1 = p2
+                
+            lastVerts.append(len(treeVerts)-1)
+
+        treeMesh.from_pydata(treeVerts, treeEdges, ())
+
+        for group in vertexGroups:
+            treeObj.vertex_groups.new(group)
+            treeObj.vertex_groups[group].add(vertexGroups[group], 1.0, 'ADD')
+
+        #add armature
+        if useArm:
+            armMod = treeObj.modifiers.new('windSway', 'ARMATURE')
+            if previewArm:
+                bpy.data.objects['treeArm'].hide = True
+            armMod.object = bpy.data.objects['treeArm']
+            armMod.use_bone_envelopes = False
+            armMod.use_vertex_groups = True
+
+        #add skin modifier and set data
+        skinMod = treeObj.modifiers.new('Skin', 'SKIN')
+        skinMod.use_smooth_shade = True
+        if previewArm:
+            skinMod.show_viewport = False
+        skindata = treeObj.data.skin_vertices[0].data
+        for i, radius in enumerate(vert_radius):
+            skindata[i].radius = radius
+            skindata[i].use_root = root_vert[i]
+
+        print("mesh time", time.time() - t1)
