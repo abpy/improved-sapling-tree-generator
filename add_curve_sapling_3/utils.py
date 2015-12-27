@@ -1743,6 +1743,9 @@ def addTree(props):
                     groupName = roundBone(groupName, step)
                     if groupName not in vertexGroups:
                         vertexGroups[groupName] = []
+                
+                if issplit[i] and n == 0:
+                    vertexGroups[groupName].append(vindex - 1)
 
                 for f in range(1, resU+1):
                     pos = f / resU
@@ -1757,10 +1760,10 @@ def addTree(props):
                         edge = [parent, n * resU + f + vindex]
                     else:
                         edge = [n * resU + f + vindex - 1, n * resU + f + vindex]
+                        #add vert to group
+                        vertexGroups[groupName].append(n * resU + f + vindex - 1)
                     treeEdges.append(edge)
-
-                    #add vert to group
-                    vertexGroups[groupName].append(n * resU + f + vindex - 1)
+                    
                 vertexGroups[groupName].append(n * resU + resU + vindex)
 
                 p1 = p2
@@ -1778,6 +1781,7 @@ def addTree(props):
             armMod = treeObj.modifiers.new('windSway', 'ARMATURE')
             if previewArm:
                 bpy.data.objects['treeArm'].hide = True
+                bpy.data.armatures['tree'].draw_type = 'STICK'
             armMod.object = bpy.data.objects['treeArm']
             armMod.use_bone_envelopes = False
             armMod.use_vertex_groups = True
