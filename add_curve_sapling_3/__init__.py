@@ -588,7 +588,7 @@ class AddTree(bpy.types.Operator):
     handleType = EnumProperty(name='Handle Type',
         description='The type of handles used in the spline',
         items=handleList,
-        default='1', update=update_tree)
+        default='0', update=update_tree)
     
     armAnim = BoolProperty(name='Armature Animation',
         description='Whether animation is added to the armature',
@@ -644,7 +644,7 @@ class AddTree(bpy.types.Operator):
     armLevels = IntProperty(name='Armature Levels',
         description='Number of branching levels to make bones for, 0 is all levels',
         min=0,
-        default=0, update=update_tree)
+        default=2, update=update_tree)
     boneStep = IntVectorProperty(name='Bone Length',
         description='Number of stem segments per bone',
         min=1,

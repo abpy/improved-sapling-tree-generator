@@ -413,14 +413,15 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             if (stem.seg == stem.segMax-1) and closeTip:
                 newPoint.radius = 0.0
             # If this isn't the last point on a stem, then we need to add it to the list of stems to continue growing
-            if stem.seg != stem.segMax:
-                nstem = stemSpline(newSpline, stem.curv, stem.curvV, stem.vertAtt, stem.seg+1, stem.segMax, stemL, stem.children,
-                                   stem.radS * bScale, stem.radE * bScale, len(cu.splines)-1, ofst, stem.quat())
-                nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
-                splineList.append(nstem)
-                bone = 'bone'+(str(stem.splN)).rjust(3, '0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3, '0')
-                bone = roundBone(bone, boneStep[n])
-                splineToBone.append((bone, False, True))
+            #print(stem.seg != stem.segMax, stem.seg, stem.segMax)
+            #if stem.seg != stem.segMax: # if probs not nessesary
+            nstem = stemSpline(newSpline, stem.curv, stem.curvV, stem.vertAtt, stem.seg+1, stem.segMax, stemL, stem.children,
+                               stem.radS * bScale, stem.radE * bScale, len(cu.splines)-1, ofst, stem.quat())
+            nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
+            splineList.append(nstem)
+            bone = 'bone'+(str(stem.splN)).rjust(3, '0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3, '0')
+            bone = roundBone(bone, boneStep[n])
+            splineToBone.append((bone, False, True, len(stem.spline.bezier_points)-2))
                 
         # The original spline also needs to keep growing so adjust its direction too
         divRotMat = Matrix.Rotation(-angle + curveangle, 3, 'X')
@@ -482,7 +483,8 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     stem.updateEnd()
     #return splineList
 
-def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset, index, downAngle, downAngleV, rotate, rotateV, oldRot, bend, leaves, leafShape, leafangle, horzLeaves):
+def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset, index, downAngle, downAngleV, rotate, rotateV, oldRot, bend, leaves, leafShape,
+                leafangle, horzLeaves):
     if leafShape == 'hex':
         verts = [Vector((0, 0, 0)), Vector((0.5, 0, 1/3)), Vector((0.5, 0, 2/3)), Vector((0, 0, 1)), Vector((-0.5, 0, 2/3)), Vector((-0.5, 0, 1/3))]
         edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 3]]
@@ -1656,7 +1658,6 @@ def addTree(props):
     
     leafVertSize = {'hex': 6, 'rect': 4, 'dFace': 4, 'dVert': 1}[leafShape]
     
-    #makeMesh = False
     armLevels = min(armLevels, levels)
     armLevels -= 1
     
@@ -1664,9 +1665,10 @@ def addTree(props):
     splineToBone1 = splineToBone
     splineToBone = [s[0] if len(s) > 1 else s for s in splineToBone1]
     isend = [s[1] if len(s) > 1 else False for s in splineToBone1]
-    issplit =  [s[2] if len(s) > 2 else False for s in splineToBone1]
+    issplit = [s[2] if len(s) > 2 else False for s in splineToBone1]
+    splitPidx = [s[3] if len(s) > 2 else 0 for s in splineToBone1]
     
-    # If we need and armature we add it
+    # If we need an armature we add it
     if useArm:
         # Create the armature and objects
         create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
@@ -1705,6 +1707,21 @@ def addTree(props):
             vindex = len(treeVerts)
             
             p1 = points[0]
+            
+            #add extra vertex for splits
+            if issplit[i]:
+                pb = int(splineToBone[i][4:-4])
+                pn = splitPidx[i] #int(splineToBone[i][-3:])
+                p_1 = cu.splines[pb].bezier_points[pn]
+                p_2 = cu.splines[pb].bezier_points[pn+1]
+                p = evalBez(p_1.co, p_1.handle_right, p_2.handle_left, p_2.co, 1 - 1/(resU + 1))
+                treeVerts.append(p)
+                
+                root_vert.append(False)
+                vert_radius.append((p1.radius * .75, p1.radius * .75))
+                treeEdges.append([vindex,vindex+1])
+                vindex += 1
+            
             if isend[i]:
                 parent = lastVerts[int(splineToBone[i][4:-4])]
                 vindex -= 1
@@ -1714,15 +1731,15 @@ def addTree(props):
                 root_vert.append(True)
                 vert_radius.append((p1.radius, p1.radius))
             
-            #add extra vertex for splits
-            if issplit[i]:
-                p2 = points[1]
-                p = evalBez(p1.co, p1.handle_right, p2.handle_left, p2.co, .001)
-                treeVerts.append(p)
-                root_vert.append(False)
-                vert_radius.append((p1.radius, p1.radius)) #(p1.radius * .95, p1.radius * .95)
-                treeEdges.append([vindex,vindex+1])
-                vindex += 1
+#            #add extra vertex for splits
+#            if issplit[i]:
+#                p2 = points[1]
+#                p = evalBez(p1.co, p1.handle_right, p2.handle_left, p2.co, .001)
+#                treeVerts.append(p)
+#                root_vert.append(False)
+#                vert_radius.append((p1.radius, p1.radius)) #(p1.radius * .95, p1.radius * .95)
+#                treeEdges.append([vindex,vindex+1])
+#                vindex += 1
 
             #dont make vertex group if above armLevels
             if (i >= levelCount[armLevels]):
@@ -1744,8 +1761,12 @@ def addTree(props):
                     if groupName not in vertexGroups:
                         vertexGroups[groupName] = []
                 
+                # parent first vert in split to parent branch bone
                 if issplit[i] and n == 0:
-                    vertexGroups[groupName].append(vindex - 1)
+                    if g:
+                        vertexGroups[groupName].append(vindex - 1)
+                    else:
+                        vertexGroups[splineToBone[i]].append(vindex - 1)
 
                 for f in range(1, resU+1):
                     pos = f / resU
@@ -1785,6 +1806,7 @@ def addTree(props):
             armMod.object = bpy.data.objects['treeArm']
             armMod.use_bone_envelopes = False
             armMod.use_vertex_groups = True
+            treeObj.parent = bpy.data.objects['treeArm']
 
         #add skin modifier and set data
         skinMod = treeObj.modifiers.new('Skin', 'SKIN')
