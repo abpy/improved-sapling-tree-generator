@@ -892,7 +892,7 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
     treeOb.parent = armOb
 
 
-def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, resU, scale0, scaleV0,
+def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU, scale0, scaleV0,
                     scaleVal, taper, minRadius, rootFlare):
     newSpline = cu.splines.new('BEZIER')
     cu.resolution_u = resU
@@ -901,16 +901,18 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, l
     newPoint.handle_right = Vector((0, 0, 1))
     newPoint.handle_left = Vector((0, 0, -1))
     # (newPoint.handle_right_type, newPoint.handle_left_type) = ('VECTOR', 'VECTOR')
-    branchL = scaleVal * length[0] # * uniform(1 - lengthV[0], 1 + lengthV[0])
+    branchL = scaleVal * length[0]
+    curveVal = curve[0] / curveRes[0]
+    #curveVal = curveVal * (branchL / scaleVal)
     childStems = branches[1]
     startRad = branchL * ratio * (scale0 + uniform(-scaleV0, scaleV0))
-    endRad = startRad * (1 - taper[0])
+    endRad = (startRad * (1 - taper[0])) ** ratioPower
     startRad = max(startRad, minRadius)
     endRad = max(endRad, minRadius)
     newPoint.radius = startRad * rootFlare
     addstem(
-        stemSpline(newSpline, curve[0] / curveRes[0], curveV[0] / curveRes[0], attractUp[0], 0, curveRes[0], branchL / curveRes[0],
-                   childStems, startRad, endRad, 0, 0, None)) ##Quaternion((0, 0, 0, 0))
+        stemSpline(newSpline, curveVal, curveV[0] / curveRes[0], attractUp[0], 0, curveRes[0], branchL / curveRes[0],
+                   childStems, startRad, endRad, 0, 0, None))
 
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
@@ -1085,7 +1087,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
         if p.offset == 1:
             startRad = p.radiusPar[1]
-        endRad = startRad * (1 - taper[n])
+        endRad = (startRad * (1 - taper[n])) ** ratioPower
         startRad = max(startRad, minRadius)
         endRad = max(endRad, minRadius)
         newPoint.radius = startRad
@@ -1093,12 +1095,14 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         # stem curvature
         curveVal = curve[n] / curveRes[n]
         curveVar = curveV[n] / curveRes[n]
+        
+        #curveVal = curveVal * (branchL / scaleVal)
 
         # Add the new stem to list of stems to grow and define which bone it will be parented to
         addstem(
             stemSpline(newSpline, curveVal, curveVar, attractUp[n], 0, curveRes[n], branchL / curveRes[n], childStems,
                        startRad, endRad, len(cu.splines) - 1, 0, p.quat))
-        
+
         bone = roundBone(p.parBone, boneStep[n-1])
         if p.offset == 1:
             isend = True
@@ -1509,7 +1513,7 @@ def addTree(props):
         
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
-            kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, resU,
+            kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU,
                             scale0, scaleV0, scaleVal, taper, minRadius, rootFlare)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:

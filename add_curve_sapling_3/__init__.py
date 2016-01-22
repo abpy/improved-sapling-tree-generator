@@ -315,7 +315,7 @@ class AddTree(bpy.types.Operator):
     taperCrown = FloatProperty(name='Taper Crown',
         description='Shorten trunk splits toward outside of tree',
         min=0.0,
-        max=1.0,
+        soft_max=1.0,
         default=0, update=update_tree)
     branches = IntVectorProperty(name='Branches',
         description='The number of branches grown at each level (nBranches)',
