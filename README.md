@@ -43,13 +43,14 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
 * consistent method of calculating the number of child stems and leaves, and more even distribution
 * hexagonal leaves now have UVs, and UVs are centered in the map
 * (11-4-15) Merge code from Garfield96, leaf settings can now be changed without updating the tree if leaves is disabled.
-* 11-17 Made changes to armature and animation, these changes are experimental and may be subject to changes
+* 11-17 Made changes to armature and animation
   * added leaf bones, and animation looping
   * fix issues with auto curve handels and intersections
   * changed how amplitude and frequency are calculated
   * directional wind, and new controls for wind animation
 
 * Presets are now saved to the user presets folder
+* Trunk splitting now uses the rotate angle to control the direction of splits, trees are now rounder and more even then before when direction was just random
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
