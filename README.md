@@ -14,7 +14,7 @@ New leaf rotation options can set the leaf orientation so that the leaves face u
 
 An object can now be set to use for leaves with dupliverts or duplifaces
 
-Curves can now be converted into a mesh that uses the skin modifier. With the mesh it is now possible to simplfy the armature greatly reducing the number of bones and the time it takes to generate the armature. You can now set the number of branching levels to make bones for, and the number of bones is each branch.
+Curves can now be converted into a mesh that uses the skin modifier. With the mesh it is now possible to simplfy the armature greatly reducing the number of bones and the time it takes to generate the armature. You can now set the number of branching levels to make bones for, and the number of bones in each branch.
 
 ####Change Log
 * Rearranged Interface
@@ -50,7 +50,7 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
   * directional wind, and new controls for wind animation
 
 * Presets are now saved to the user presets folder
-* Trunk splitting now uses the rotate angle to control the direction of splits, trees are now rounder and more even then before when direction was just random
+* Trunk splitting now uses the rotate angle to control the direction of splits, trees are now rounder and more even than before when direction was just random
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
