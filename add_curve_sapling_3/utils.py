@@ -919,7 +919,7 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, l
     curveVal = curve[0] / curveRes[0]
     #curveVal = curveVal * (branchL / scaleVal)
     childStems = branches[1]
-    startRad = branchL * ratio * (scale0 + uniform(-scaleV0, scaleV0))
+    startRad = scaleVal * ratio * scale0 * uniform(1-scaleV0, 1+scaleV0) ## * (scale0 + uniform(-scaleV0, scaleV0)) #
     endRad = (startRad * (1 - taper[0])) ** ratioPower
     startRad = max(startRad, minRadius)
     endRad = max(endRad, minRadius)
@@ -1000,11 +1000,27 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                 bv = Vector((b[0], -b[1]))
                 cv = v - bv
                 a = atan2(cv[0], cv[1])
+                #rot_a.append(a)
+                
+#                # add fill points at top  #experimental
+#                fillHeight = 1 - degrees(rotateV[3])#0.8
+#                if fillHeight < 1:
+#                    w = (p[0].offset - fillHeight) / (1- fillHeight)
+#                    prob_b = random() < w
+#                else:
+#                    prob_b = False
+#                
+#                if (p[0].offset > fillHeight): #prob_b and (len(p) > 1):  ##(p[0].offset > fillHeight) and 
+#                    childP.append(p[randint(0, len(p)-1)])
+#                    rot_a.append(bRotate)# + pi)
+                    
+                childP.append(p[idx])
                 rot_a.append(a)
                 
             else:
                 idx = randint(0, len(p)-1)
-            childP.append(p[idx])
+                childP.append(p[idx])
+            #childP.append(p[idx])
 
         childP.extend(childP_L)
         rot_a.extend([0] * len(childP_L))

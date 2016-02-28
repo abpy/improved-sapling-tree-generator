@@ -487,6 +487,8 @@ class AddTree(bpy.types.Operator):
         default=1.0, update=update_tree)
     scaleV0 = FloatProperty(name='Radius Scale Variation',
         description='Variation in the radius scale (0ScaleV)',
+        min=0.0,
+        max=1.0,
         default=0.2, update=update_tree)
     pruneWidth = FloatProperty(name='Prune Width',
         description='The width of the envelope (PruneWidth)',
