@@ -754,6 +754,7 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
                     # Define all the required parameters of the wind sway by the dimension of the spline
                     #a0 = 4 * splineL * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
                     a0 = 2 * (splineL / numPoints) * (1 - n / (numPoints + 1)) / max(s.bezier_points[n].radius, 1e-6)
+                    a0 = a0 * min(step, numPoints)
                     #a0 = (splineL / numPoints) / max(s.bezier_points[n].radius, 1e-6)
                     a1 = (wind / 50) * a0
                     a2 = a1 * .65  #(windGust / 50) * a0 + a1 / 2
