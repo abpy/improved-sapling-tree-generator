@@ -554,7 +554,7 @@ class AddTree(bpy.types.Operator):
         max = 1.0,
         default=0.0, update=update_leaves)
     leafShape = EnumProperty(name='Leaf Shape',
-        description='The shape of the leaves, rectangular are UV mapped',
+        description='The shape of the leaves',
         items=(('hex', 'Hexagonal', '0'), ('rect', 'Rectangular', '1'), ('dFace', 'DupliFaces', '2'), ('dVert', 'DupliVerts', '3')),
         default='hex', update=update_leaves)
     leafDupliObj = EnumProperty(name='Leaf Object',

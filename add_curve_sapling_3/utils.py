@@ -907,7 +907,7 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
     treeOb.parent = armOb
 
 
-def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU, scale0, scaleV0,
+def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU, scale0, scaleV0,
                     scaleVal, taper, minRadius, rootFlare):
     newSpline = cu.splines.new('BEZIER')
     cu.resolution_u = resU
@@ -919,7 +919,10 @@ def kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, l
     branchL = scaleVal * length[0]
     curveVal = curve[0] / curveRes[0]
     #curveVal = curveVal * (branchL / scaleVal)
-    childStems = branches[1]
+    if levels == 1:
+        childStems = leaves
+    else:
+        childStems = branches[1]
     startRad = scaleVal * ratio * scale0 * uniform(1-scaleV0, 1+scaleV0) ## * (scale0 + uniform(-scaleV0, scaleV0)) #
     endRad = (startRad * (1 - taper[0])) ** ratioPower
     startRad = max(startRad, minRadius)
@@ -1280,7 +1283,8 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             
             #grow branches in rings
             if (n == 0) and (nrings > 0):
-                tVals = [(floor(t * nrings)) / nrings for t in tVals[:-1]]
+                #tVals = [(floor(t * nrings)) / nrings for t in tVals[:-1]]
+                tVals = [(floor(t * nrings) / nrings) * uniform(.995, 1.005) for t in tVals[:-1]]
                 tVals.append(1)
                 tVals = [t for t in tVals if t > baseSize]
 
@@ -1546,7 +1550,7 @@ def addTree(props):
         
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
-            kickstart_trunk(addstem, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU,
+            kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU,
                             scale0, scaleV0, scaleVal, taper, minRadius, rootFlare)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:
