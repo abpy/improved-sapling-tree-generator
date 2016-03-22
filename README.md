@@ -51,6 +51,8 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
 
 * Presets are now saved to the user presets folder
 * Trunk splitting now uses the rotate angle to control the direction of splits, trees are now rounder and more even than before when direction was just random
+* leaves parameter now controls amount of leaves even if levels is 1
+* added random variation to make branch rings work with branching mode at rotate
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
