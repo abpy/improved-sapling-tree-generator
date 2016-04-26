@@ -173,7 +173,13 @@ def curveUp(attractUp, quat, curveRes):
     tempVec = yAxis.copy()
     tempVec.rotate(quat)
     tempVec.normalize()
-    return attractUp*radians(declination(quat))*abs(tempVec.z)/curveRes
+    dec = radians(declination(quat))
+    curveUpAng = attractUp*dec*abs(tempVec.z)/curveRes
+    if (-dec + curveUpAng) < -pi:
+        curveUpAng = -pi + dec
+    if (dec - curveUpAng) < 0:
+        curveUpAng = dec
+    return curveUpAng
 
 # Evaluate a bezier curve for the parameter 0<=t<=1 along its length
 def evalBez(p1, h1, h2, p2, t):
