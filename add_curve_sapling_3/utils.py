@@ -191,9 +191,7 @@ def evalBezTan(p1, h1, h2, p2, t):
 
 # Determine the range of t values along a splines length where child stems are formed
 def findChildPoints(stemList, numChild):
-    numPoints = sum([len(n.spline.bezier_points) for n in stemList])
-    numSplines = len(stemList)
-    numSegs = numPoints - numSplines
+    numSegs = sum([len(n.spline.bezier_points) - 1 for n in stemList])
     numPerSeg = numChild/numSegs
     numMain = round(numPerSeg*stemList[0].segMax, 0)
     return [(a+1)/(numMain) for a in range(int(numMain))]
@@ -255,13 +253,13 @@ def interpStem(stem, tVals, lPar, parRad, maxOffset, baseSize):
             radius = (1-tTemp)*points[index].radius + tTemp*points[index+1].radius # Not sure if this is the parent radius at the child point or parent start radius
             
             tempList.append(childPoint(coord, quat, (parRad, radius), t, ofst, lPar, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
-    
-    #add stem at tip
-    index = numSegs-1
-    coord = points[-1].co
-    quat = (points[-1].handle_right - points[-1].co).to_track_quat('Z', 'Y')
-    radius = points[-1].radius
-    tempList.append(childPoint(coord, quat, (parRad, radius), 1, 1, lPar, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
+        elif t == 1:
+            #add stems at tip
+            index = numSegs-1
+            coord = points[-1].co
+            quat = (points[-1].handle_right - points[-1].co).to_track_quat('Z', 'Y')
+            radius = points[-1].radius
+            tempList.append(childPoint(coord, quat, (parRad, radius), 1, 1, lPar, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
             
     return tempList
 
@@ -503,8 +501,8 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     stem.updateEnd()
     #return splineList
 
-def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset, index, downAngle, downAngleV, rotate, rotateV, oldRot, bend, leaves, leafShape,
-                leafangle, horzLeaves):
+def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset, index, downAngle, downAngleV, rotate, rotateV, oldRot,
+                leaves, leafShape, leafangle, horzLeaves, leafType, ln):
     if leafShape == 'hex':
         verts = [Vector((0, 0, 0)), Vector((0.5, 0, 1/3)), Vector((0.5, 0, 2/3)), Vector((0, 0, 1)), Vector((-0.5, 0, 2/3)), Vector((-0.5, 0, 1/3))]
         edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 3]]
@@ -527,41 +525,47 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
     facesList = []
     normal = Vector((0, 0, 1))
     
-    if leaves < 0:
-        rotMat = Matrix.Rotation(oldRot, 3, 'Y')
-    else:
-        rotMat = Matrix.Rotation(oldRot, 3, 'Z')
+    #To Do: #palmate should not use quat for leveling
     
-    # If the -ve flag for rotate is used we need to find which side of the stem the last child point was and then grow in the opposite direction.
-    if rotate < 0.0:
-        oldRot = -copysign(rotate + uniform(-rotateV, rotateV), oldRot)
-    else:
-        # If the special -ve flag for leaves is used we need a different rotation of the leaf geometry
-        if leaves == -1:
-            #oldRot = 0
+    if leafType == '0':
+        oldRot += radians(137.5)
+    elif leafType == '1':
+        if ln % 2:
+            oldRot += radians(180)
+        else: 
+            oldRot += radians(137.5)
+    elif leafType in ['2', '3']:
+        oldRot = -copysign(rotate, oldRot)
+    elif leafType == '4':
+        rotMat = Matrix.Rotation(oldRot + uniform(-rotateV, rotateV), 3, 'Y')
+        if leaves == 1:
             rotMat = Matrix.Rotation(0, 3, 'Y')
-        elif leaves < -1:
-            oldRot += rotate / (-leaves - 1)
         else:
-            oldRot += rotate + uniform(-rotateV, rotateV)
+            oldRot += rotate / (leaves - 1)
     
-#    if leaves < 0:
-#        rotMat = Matrix.Rotation(oldRot, 3, 'Y')
-#    else:
-#        rotMat = Matrix.Rotation(oldRot, 3, 'Z')
-
-    if leaves >= 0:
-        #downRotMat = Matrix.Rotation(downAngle+uniform(-downAngleV, downAngleV), 3, 'X')
-        
-        if downAngleV > 0.0:
-            downV = -downAngleV * offset
-        else:
-            downV = uniform(-downAngleV, downAngleV)
-        downRotMat = Matrix.Rotation(downAngle + downV, 3, 'X')
+    if leafType != '4':
+        rotMat = Matrix.Rotation(oldRot + uniform(-rotateV, rotateV), 3, 'Z')
+    
+    # reduce downAngle if leaf is at branch tip
+    if (offset == 1):
+        if leafType in ['0', '1', '2']:
+            downAngle = downAngle * .67
+        elif leafType == '3':
+            if (leaves / 2) == (leaves // 2):
+                downAngle = downAngle * .67
+            else:
+                downAngle = 0
+                downAngleV = 0
+    
+    if leafType != '4':
+        downV = -downAngleV * offset ** 2
+        downRotMat = Matrix.Rotation(downAngle + downV + uniform(-rotateV*0, rotateV*0), 3, 'X')
+    
+    zVar = Matrix.Rotation(uniform(-rotateV, rotateV), 3, 'Z')
     
     #leaf scale variation
-    if (leaves < -1) and (rotate != 0):
-        f = 1 - abs((oldRot - (rotate / (-leaves - 1))) / (rotate / 2))
+    if (leafType == '4') and (rotate != 0) and (leaves > 1):
+        f = 1 - abs((oldRot - (rotate / (leaves - 1))) / (rotate / 2))
     else:
         f = offset
     
@@ -574,28 +578,32 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
     
     if leafShape == 'dFace':
         leafScale = leafScale * .1
-
-    # If the bending of the leaves is used we need to rotate them differently
-    if (bend != 0.0) and (leaves >= 0):
-        normal = yAxis.copy()
-        orientationVec = zAxis.copy()
+    
+    #Rotate leaf vector
+    v = zAxis.copy()
+    
+    #try using matrix or quaternion and slerp
+    #v = Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    #v = Quaternion([1, 0, 0, 0])
         
-        normal.rotate(quat)
-        orientationVec.rotate(quat)
+    if leafType in ['2', '3']:
+        v.rotate(Euler((0, 0, radians(90))))
+        if oldRot > 0:
+            v.rotate(Euler((0, 0, radians(180))))
 
-        thetaPos = atan2(loc.y, loc.x)
-        thetaBend = thetaPos - atan2(normal.y, normal.x)
-        rotateZ = Matrix.Rotation(bend*thetaBend, 3, 'Z')
-        normal.rotate(rotateZ)
-        orientationVec.rotate(rotateZ)
+    #if (leaves > 0) and (rotate > 0) and horzLeaves:
+    #    nRotMat = Matrix.Rotation(-oldRot + rotate, 3, 'Z')
+    #    v.rotate(nRotMat)
 
-        phiBend = atan2((normal.xy).length, normal.z)
-        orientation = atan2(orientationVec.y, orientationVec.x)
-        rotateZOrien = Matrix.Rotation(orientation, 3, 'X')
+    if leafType != '4':
+        v.rotate(downRotMat)
 
-        rotateX = Matrix.Rotation(bend*phiBend, 3, 'Z')
+    v.rotate(rotMat)
+    v.rotate(quat)
 
-        rotateZOrien2 = Matrix.Rotation(-orientation, 3, 'X')
+    vquat = v.to_track_quat('Z', 'Y')
+    
+    #vquat = v#.to_quaternion()
 
     # For each of the verts we now rotate and scale them, then append them to the list to be added to the mesh
     for v in verts:
@@ -605,30 +613,13 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
         
         v.rotate(Euler((0, 0, radians(180))))
         
+        #rotate variation
+        v.rotate(zVar)
+        
         #leafangle
         v.rotate(Matrix.Rotation(radians(-leafangle), 3, 'X'))
         
-        if rotate < 0:
-            v.rotate(Euler((0, 0, radians(90))))
-            if oldRot < 0:
-                v.rotate(Euler((0, 0, radians(180))))
-        
-        if (leaves > 0) and (rotate > 0) and horzLeaves:
-            nRotMat = Matrix.Rotation(-oldRot + rotate, 3, 'Z')
-            v.rotate(nRotMat)
-
-        if leaves > 0:
-            v.rotate(downRotMat)
-        
-        v.rotate(rotMat)
-        v.rotate(quat)
-
-        if (bend != 0.0) and (leaves > 0):
-            # Correct the rotation
-            v.rotate(rotateZ)
-            v.rotate(rotateZOrien)
-            v.rotate(rotateX)
-            v.rotate(rotateZOrien2)
+        v.rotate(vquat)
     
     if leafShape == 'dVert':
         normal = verts[0]
@@ -940,7 +931,7 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curv
 
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
-                    downAngle, downAngleV, leafDist, leaves, length, lengthV, levels, n, ratioPower, resU,
+                    downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV, levels, n, ratioPower, resU,
                     rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
                     useOldDownAngle, useParentAngle, boneStep):
     
@@ -1116,7 +1107,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         
         # If this is the last level before leaves then we need to generate the child points differently
         if (storeN == levels - 1):
-            if leaves < 0:
+            if leafType == '4':
                 childStems = False
             else:
                 childStems = leaves * (0.1 + 0.9 * (branchL / maxbL)) * shapeRatio(leafDist, (1 - p.offset))
@@ -1152,11 +1143,11 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
 
 
 def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, currentScale, curve, curveBack, curveRes,
-                    deleteSpline, forceSprout, handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
+                    deleteSpline, forceSprout, handles, n, levels, branches, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                     splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, nrings,
-                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, boneStep, rotate, rotateV):
+                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, boneStep, rotate, rotateV, leaves, leafType):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -1277,17 +1268,32 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
         if (((currentMax - currentMin) < 0.005) or not prune) or forceSprout:
             if (n == 0) and (rMode != "original"):
                 tVals = findChildPoints2(splineList, st.children)
+            elif (n == levels - 1) and leafType in ['1', '3']: #oppositely attached leaves
+                tVal = findChildPoints(splineList, st.children // 2)
+                tVals = []
+                for t in tVal[:-1]:
+                    tVals.extend([t, t])
+                if (leaves / 2) == (leaves // 2):
+                    tVals.extend([1, 1])
+                else:
+                    tVals.append(1)
             else:
                 tVals = findChildPoints(splineList, st.children)
-            #print("debug tvals[%d] , splineList[%d], %s" % ( len(tVals), len(splineList), st.children))
-            # If leaves is -ve then we need to make sure the only point which sprouts is the end of the spline
-            if not st.children:
+            
+            if 1 not in tVals:
+                tVals.append(1.0)
+            if branches[min(3, n+1)] == 0:
+                tVals = []
+
+            # If leafType is '4' then we need to make sure the only point which sprouts is the end of the spline
+            if (n == levels - 1) and (not st.children):
                 tVals = [1.0]
+            
             # remove some of the points because of baseSize
             trimNum = int(baseSize * (len(tVals) + 1))
             tVals = tVals[trimNum:]
             
-            #grow branches in rings
+            #grow branches in rings/whorls
             if (n == 0) and (nrings > 0):
                 #tVals = [(floor(t * nrings)) / nrings for t in tVals[:-1]]
                 tVals = [(floor(t * nrings) / nrings) * uniform(.995, 1.005) for t in tVals[:-1]]
@@ -1388,6 +1394,7 @@ def addTree(props):
     nrings = props.nrings
     baseSize = props.baseSize
     baseSize_s = props.baseSize_s
+    leafBaseSize = props.leafBaseSize
     splitHeight = props.splitHeight
     splitBias = props.splitBias
     ratio = props.ratio
@@ -1411,6 +1418,7 @@ def addTree(props):
     prunePowerLow = props.prunePowerLow#
     prunePowerHigh = props.prunePowerHigh#
     pruneRatio = props.pruneRatio#
+    leafType = props.leafType
     leafDownAngle = radians(props.leafDownAngle)
     leafDownAngleV = radians(props.leafDownAngleV)
     leafRotate = radians(props.leafRotate)
@@ -1421,7 +1429,6 @@ def addTree(props):
     leafScaleV = props.leafScaleV
     leafShape = props.leafShape
     leafDupliObj = props.leafDupliObj
-    bend = props.bend#
     leafangle = props.leafangle
     horzLeaves = props.horzLeaves
     leafDist = int(props.leafDist)#
@@ -1562,7 +1569,7 @@ def addTree(props):
         else:
             # For each of the points defined in the list of stem starting points we need to grow a stem.
             fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
-                            curveRes, curveV, attractUp, downAngle, downAngleV, leafDist, leaves, length, lengthV,
+                            curveRes, curveV, attractUp, downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV,
                             levels, n, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
                             taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
                             useOldDownAngle, useParentAngle, boneStep)
@@ -1571,7 +1578,7 @@ def addTree(props):
         if n > 0:
             baseSize *= baseSize_s #decrease at each level
         if (n == levels - 1):
-            baseSize = 0
+            baseSize = leafBaseSize
 
         childP = []
         # Now grow each of the stems in the list of those to be extended
@@ -1598,12 +1605,13 @@ def addTree(props):
             # Now do the iterative pruning, this uses a binary search and halts once the difference between upper and lower bounds of the search are less than 0.005
             ratio, splineToBone = perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin,
                                                   currentScale, curve, curveBack, curveRes, deleteSpline, forceSprout,
-                                                  handles, n, oldMax, orginalSplineToBone, originalCo, originalCurv,
+                                                  handles, n, levels, branches, oldMax, orginalSplineToBone, originalCo, originalCurv,
                                                   originalCurvV, originalHandleL, originalHandleR, originalLength,
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, 
-                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, boneStep, rotate, rotateV)
+                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight,
+                                                  attractOut, rMode, lengthV, taperCrown, boneStep, rotate, rotateV, leaves, leafType)
 
         levelCount.append(len(cu.splines))
     
@@ -1619,14 +1627,14 @@ def addTree(props):
         oldRot = 0.0
         n = min(3, n+1)
         # For each of the child points we add leaves
-        for cp in childP:
+        for ln, cp in enumerate(childP):
             # If the special flag is set then we need to add several leaves at the same location
-            if leaves < 0:
+            if leafType == '4':
                 oldRot = -leafRotate / 2
                 for g in range(abs(leaves)):
                     (vertTemp, faceTemp, normal, oldRot) = genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, cp.co, cp.quat, cp.offset,
                                                                        len(leafVerts), leafDownAngle, leafDownAngleV, leafRotate, leafRotateV,
-                                                                       oldRot, bend, leaves, leafShape, leafangle, horzLeaves)
+                                                                       oldRot, leaves, leafShape, leafangle, horzLeaves, leafType, ln)
                     leafVerts.extend(vertTemp)
                     leafFaces.extend(faceTemp)
                     leafNormals.extend(normal)
@@ -1635,7 +1643,7 @@ def addTree(props):
             else:
                 (vertTemp, faceTemp, normal, oldRot) = genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, cp.co, cp.quat, cp.offset,
                                                                    len(leafVerts), leafDownAngle, leafDownAngleV, leafRotate, leafRotateV,
-                                                                   oldRot, bend, leaves, leafShape, leafangle, horzLeaves)
+                                                                   oldRot, leaves, leafShape, leafangle, horzLeaves, leafType, ln)
                 leafVerts.extend(vertTemp)
                 leafFaces.extend(faceTemp)
                 leafNormals.extend(normal)

@@ -79,6 +79,13 @@ shapeList4 = [('0', 'Conical', ''),
             ('5', 'Flame', ''),
             ('7', 'Tend Flame', '')]
 
+leaftypes = [('0', 'Rotated Alternate', 'leaves rotate around the stem and face upwards'),
+             ('1', 'Rotated Opposite', 'pairs of leaves rotate around the stem and face upwards'),
+             ('2', 'Alternate', 'leaves sprout alternately from each side of the stem, uses rotate angle'),
+             ('3', 'Opposite', 'pairs of leaves sprout from opposite sides of stem, uses rotate angle'),
+             ('4', 'Palmately Compound', 'multiple leaves radiating from stem tip, uses rotate angle for spread angle')]
+
+
 handleList = [('0', 'Auto', 'Auto'),
                 ('1', 'Vector', 'Vector')]
 
@@ -215,6 +222,16 @@ class ImportData(bpy.types.Operator):
         
         #zero leaf bend
         settings['bend'] = 0
+        
+        #use old leaf settings
+        if 'leafType' not in settings:
+            settings['leafType'] = '0'
+        settings['leafType'] = '0'
+        if settings['leaves'] < 0:
+            settings['leaves'] = abs(settings['leaves'])
+            settings['leafType'] = '4'
+        if settings['leafRotate'] < 1:
+            settings['leafType'] = '2'
             
         # Set the flag to use the settings
         useSet = True
@@ -401,7 +418,7 @@ class AddTree(bpy.types.Operator):
         soft_max=10,
         default=1.0, update=update_tree)
     nrings = IntProperty(name='Branch Rings',
-        description='grow branches in rings',
+        description='grow branches in whorls',
         min=0,
         default=0, update=update_tree)
     baseSize = FloatProperty(name='Trunk Height',
@@ -414,6 +431,11 @@ class AddTree(bpy.types.Operator):
         min=0.0,
         max=1.0,
         default=0.25, update=update_tree)
+    leafBaseSize = FloatProperty(name='Leaf Base Size',
+        description='Fraction of stem length with no leaves',
+        min=0.0,
+        max=1.0,
+        default=0.20, update=update_tree)
     splitHeight = FloatProperty(name='Split Height',
         description='Fraction of tree height with no splits',
         min=0.0,
@@ -519,19 +541,25 @@ class AddTree(bpy.types.Operator):
         default=1.0, update=update_tree)
     leaves = IntProperty(name='Leaves',
         description='Maximum number of leaves per branch (negative values grow leaves from branch tip (palmate compound leaves))',
+        min=0,
         default=25, update=update_tree)
+    leafType = EnumProperty(name='Leaf Type',
+        description='Type of leaf arrangment',
+        items=leaftypes[::-1],
+        default='0', update=update_leaves)
     
     leafDownAngle = FloatProperty(name='Leaf Down Angle',
         description='The angle between a new leaf and the branch it grew from',
         default=45, update=update_leaves)
     leafDownAngleV = FloatProperty(name='Leaf Down Angle Variation',
         description='Angle to decrease Down Angle by towards end of parent branch (negative values add random variation)',
+        min=0,
         default=10, update=update_tree)
     leafRotate = FloatProperty(name='Leaf Rotate Angle',
         description='The angle of a new leaf around the one it grew from (negative values make leaves rotate opposite from the previous one)',
         default=137.5, update=update_tree)
-    leafRotateV = FloatProperty(name='Leaf Rotate Angle Variation',
-        description='Variation in the rotate angle',
+    leafRotateV = FloatProperty(name='Rotation Variation',
+        description='Add randomness to leaf orientation',
         default=0.0, update=update_leaves)
     
     leafScale = FloatProperty(name='Leaf Scale',
@@ -836,9 +864,12 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'leafShape')
             box.prop(self, 'leafDupliObj')
             box.prop(self, 'leaves')
+            box.prop(self, 'leafBaseSize')
             box.prop(self, 'leafDist')
             
             box.label("")
+            box.prop(self, 'leafType')
+            box.prop(self, 'leafangle')
             row = box.row()
             row.prop(self, 'leafDownAngle')
             row.prop(self, 'leafDownAngleV')
@@ -856,8 +887,8 @@ class AddTree(bpy.types.Operator):
             row.prop(self, 'leafScaleT')
             row.prop(self, 'leafScaleV')
             
-            box.prop(self, 'horzLeaves')
-            box.prop(self, 'leafangle')
+            #box.prop(self, 'horzLeaves')
+            #box.prop(self, 'leafangle')
             
             #box.label(" ")
             #box.prop(self, 'bend')
