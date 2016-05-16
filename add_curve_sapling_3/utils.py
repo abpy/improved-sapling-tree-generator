@@ -199,37 +199,7 @@ def findChildPoints(stemList, numChild):
 def findChildPoints2(stemList, numChild):
     return [(a+1)/(numChild) for a in range(int(numChild))]
 
-# Find the coordinates, quaternion and radius for each t on the stem
-def interpStem1(stem, tVals, lPar, parRad):
-    points = stem.spline.bezier_points
-    numPoints = len(points)
-    checkVal = (stem.segMax - (numPoints - 1)) / stem.segMax
-    # Loop through all the parametric values to be determined
-    tempList = deque()
-    for t in tVals:
-        if t == 1.0:
-            index = numPoints-2
-            coord = points[-1].co
-            quat = (points[-1].handle_right - points[-1].co).to_track_quat('Z', 'Y')
-            radius = points[-1].radius
-            
-            tempList.append(childPoint(coord, quat, (parRad, radius), t, lPar, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
-            
-        elif (t >= checkVal) and (t < 1.0):
-            scaledT = (t - checkVal) / ((1 - checkVal) + .0001)
-            length = (numPoints-1)*scaledT
-            index = int(length)
-            
-            tTemp = length - index
-            coord = evalBez(points[index].co, points[index].handle_right, points[index+1].handle_left, points[index+1].co, tTemp)
-            quat = (evalBezTan(points[index].co, points[index].handle_right, points[index+1].handle_left, points[index+1].co, tTemp)).to_track_quat('Z', 'Y')
-            radius = (1-tTemp)*points[index].radius + tTemp*points[index+1].radius # Not sure if this is the parent radius at the child point or parent start radius
-            
-            tempList.append(childPoint(coord, quat, (parRad, radius), t, lPar, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
-            
-    return tempList
-
-def interpStem(stem, tVals, lPar, parRad, maxOffset, baseSize):
+def interpStem(stem, tVals, maxOffset, baseSize):
     points = stem.spline.bezier_points
     numSegs = len(points) - 1
     stemLen = stem.segL * numSegs
@@ -250,16 +220,16 @@ def interpStem(stem, tVals, lPar, parRad, maxOffset, baseSize):
             
             coord = evalBez(points[index].co, points[index].handle_right, points[index+1].handle_left, points[index+1].co, tTemp)
             quat = (evalBezTan(points[index].co, points[index].handle_right, points[index+1].handle_left, points[index+1].co, tTemp)).to_track_quat('Z', 'Y')
-            radius = (1-tTemp)*points[index].radius + tTemp*points[index+1].radius # Not sure if this is the parent radius at the child point or parent start radius
+            radius = (1-tTemp)*points[index].radius + tTemp*points[index+1].radius # radius at the child point
             
-            tempList.append(childPoint(coord, quat, (parRad, radius), t, ofst, lPar, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
+            tempList.append(childPoint(coord, quat, (stem.radS, radius), t, ofst, stem.segMax * stem.segL, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
         elif t == 1:
             #add stems at tip
             index = numSegs-1
             coord = points[-1].co
             quat = (points[-1].handle_right - points[-1].co).to_track_quat('Z', 'Y')
             radius = points[-1].radius
-            tempList.append(childPoint(coord, quat, (parRad, radius), 1, 1, lPar, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
+            tempList.append(childPoint(coord, quat, (stem.radS, radius), 1, 1, stem.segMax * stem.segL, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
             
     return tempList
 
@@ -1108,7 +1078,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         # If this is the last level before leaves then we need to generate the child points differently
         if (storeN == levels - 1):
             if leafType == '4':
-                childStems = False
+                childStems = 0 #False
             else:
                 childStems = leaves * (0.1 + 0.9 * (branchL / maxbL)) * shapeRatio(leafDist, (1 - p.offset))
 
@@ -1282,12 +1252,12 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             
             if 1 not in tVals:
                 tVals.append(1.0)
-            if branches[min(3, n+1)] == 0:
+            if (n != levels - 1) and (branches[min(3, n+1)] == 0):
                 tVals = []
 
             # If leafType is '4' then we need to make sure the only point which sprouts is the end of the spline
-            if (n == levels - 1) and (not st.children):
-                tVals = [1.0]
+            #if (n == levels - 1) and (not st.children):
+            #    tVals = [1.0]
             
             # remove some of the points because of baseSize
             trimNum = int(baseSize * (len(tVals) + 1))
@@ -1313,7 +1283,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             maxOffset = max([s.offsetLen + (len(s.spline.bezier_points) - 1) * s.segL for s in splineList])
             for s in splineList:
                 #print(str(n)+'level: ', s.segMax*s.segL)
-                childP.extend(interpStem(s, tVals, s.segMax * s.segL, s.radS, maxOffset, baseSize))
+                childP.extend(interpStem(s, tVals, maxOffset, baseSize))
 
         # Force the splines to be deleted
         deleteSpline = True
