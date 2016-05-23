@@ -59,6 +59,7 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
   *  options for oppositely attached leaves
   * 'horizontal leaves' replaced with better method of making leaves rotate to face upwards
   * added option to set base size for leaves
+* add way of setting the direction of the leaf dupli object
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
