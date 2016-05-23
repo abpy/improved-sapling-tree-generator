@@ -85,6 +85,13 @@ leaftypes = [('0', 'Rotated Alternate', 'leaves rotate around the stem and face 
              ('3', 'Opposite', 'pairs of leaves sprout from opposite sides of stem, uses rotate angle'),
              ('4', 'Palmately Compound', 'multiple leaves radiating from stem tip, uses rotate angle for spread angle')]
 
+axes = [(("+0"), "X", ""),
+        (("+1"), "Y", ""),
+        (("+2"), "Z", ""),
+        (("-0"), "-X", ""),
+        (("-1"), "-Y", ""),
+        (("-2"), "-Z", "")]
+
 
 handleList = [('0', 'Auto', 'Auto'),
                 ('1', 'Vector', 'Vector')]
@@ -441,7 +448,7 @@ class AddTree(bpy.types.Operator):
         min=0.0,
         max=1.0,
         default=0.2, update=update_tree)
-    splitBias = FloatProperty(name='splitBias',
+    splitBias = FloatProperty(name='Split Bias',
         description='Put more splits at the top or bottom of the tree',
         soft_min=-2.0,
         soft_max=2.0,
@@ -561,6 +568,19 @@ class AddTree(bpy.types.Operator):
     leafRotateV = FloatProperty(name='Rotation Variation',
         description='Add randomness to leaf orientation',
         default=0.0, update=update_leaves)
+    
+    leafObjZ = EnumProperty(name='',
+        description='leaf tip axis',
+        items=axes,
+        default="+2", update=update_leaves)
+    leafObjY = EnumProperty(name='',
+        description='leaf top axis',
+        items=axes,
+        default="+1", update=update_leaves)
+    #leafObjX = EnumProperty(name='',
+    #    description='leaf side axis',
+    #    items=axes,
+    #    default="+0", update=update_leaves)
     
     leafScale = FloatProperty(name='Leaf Scale',
         description='The scaling applied to the whole leaf (LeafScale)',
@@ -863,6 +883,15 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'showLeaves')
             box.prop(self, 'leafShape')
             box.prop(self, 'leafDupliObj')
+            
+
+            row = box.row()
+            row.label("Leaf Object Axes:")
+            row.prop(self, 'leafObjZ')
+            row.prop(self, 'leafObjY')
+            #row.prop(self, 'leafObjX')
+            
+            
             box.prop(self, 'leaves')
             box.prop(self, 'leafBaseSize')
             box.prop(self, 'leafDist')

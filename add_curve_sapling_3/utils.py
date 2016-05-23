@@ -472,7 +472,7 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     #return splineList
 
 def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset, index, downAngle, downAngleV, rotate, rotateV, oldRot,
-                leaves, leafShape, leafangle, horzLeaves, leafType, ln):
+                leaves, leafShape, leafangle, horzLeaves, leafType, ln, leafObjRot):
     if leafShape == 'hex':
         verts = [Vector((0, 0, 0)), Vector((0.5, 0, 1/3)), Vector((0.5, 0, 2/3)), Vector((0, 0, 1)), Vector((-0.5, 0, 2/3)), Vector((-0.5, 0, 1/3))]
         edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [0, 3]]
@@ -580,6 +580,9 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
         v.z *= leafScale
         v.y *= leafScale
         v.x *= leafScaleX*leafScale
+        
+        if leafShape in ['dVert', 'dFace']:
+            v.rotate(leafObjRot)
         
         v.rotate(Euler((0, 0, radians(180))))
         
@@ -1060,9 +1063,6 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         
         newPoint.handle_right = p.co + tempPos
         
-        # Make length variation inversely proportional to segSplits
-        #lenV = (1 - min(segSplits[n], 1)) * lengthV[n]
-        
         # Find branch length and the number of child stems.
         maxbL = scaleVal
         for l in length[:n+1]:
@@ -1330,6 +1330,37 @@ def findtaper(length, taper, shape, shapeS, levels, customShape):
     
     return taperT
 
+def leafRot(leafObjY, leafObjZ):
+    def tovector(ax):
+        vec = [0, 0, 0]
+        a = int(ax[1])
+        s = ax[0]
+        if s == '+':
+            s = 1
+        else:
+            s = -1
+        vec[a] = s
+        return Vector(vec)
+
+    yvec = tovector(leafObjY)
+    zvec = tovector(leafObjZ)
+
+    xvec = zvec.cross(yvec)
+
+    if zvec[2] in [1, -1]:
+        xvec *= -1
+    elif xvec[2] in [1, -1]:
+        zvec *= -1
+        xvec *= -1
+    else:
+        zvec *= -1
+        yvec *= -1
+        xvec *= -1
+
+    m = Matrix([xvec, yvec, zvec])
+    m = m.to_euler()
+    return m
+
 
 def addTree(props):
     global splitError
@@ -1405,6 +1436,10 @@ def addTree(props):
     bevelRes = props.bevelRes#
     resU = props.resU#
     
+    #leafObjX = props.leafObjX
+    leafObjY = props.leafObjY
+    leafObjZ = props.leafObjZ
+    
     useArm = props.useArm
     previewArm = props.previewArm
     armAnim = props.armAnim
@@ -1440,6 +1475,8 @@ def addTree(props):
         #taper = findtaper(length, taper, shape, shapeS, pLevels, customShape)
     
     leafObj = None
+    
+    leafObjRot = leafRot(leafObjY, leafObjZ)
     
     # Some effects can be turned ON and OFF, the necessary variables are changed here
     if not props.bevel:
@@ -1604,7 +1641,7 @@ def addTree(props):
                 for g in range(abs(leaves)):
                     (vertTemp, faceTemp, normal, oldRot) = genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, cp.co, cp.quat, cp.offset,
                                                                        len(leafVerts), leafDownAngle, leafDownAngleV, leafRotate, leafRotateV,
-                                                                       oldRot, leaves, leafShape, leafangle, horzLeaves, leafType, ln)
+                                                                       oldRot, leaves, leafShape, leafangle, horzLeaves, leafType, ln, leafObjRot)
                     leafVerts.extend(vertTemp)
                     leafFaces.extend(faceTemp)
                     leafNormals.extend(normal)
@@ -1613,7 +1650,7 @@ def addTree(props):
             else:
                 (vertTemp, faceTemp, normal, oldRot) = genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, cp.co, cp.quat, cp.offset,
                                                                    len(leafVerts), leafDownAngle, leafDownAngleV, leafRotate, leafRotateV,
-                                                                   oldRot, leaves, leafShape, leafangle, horzLeaves, leafType, ln)
+                                                                   oldRot, leaves, leafShape, leafangle, horzLeaves, leafType, ln, leafObjRot)
                 leafVerts.extend(vertTemp)
                 leafFaces.extend(faceTemp)
                 leafNormals.extend(normal)
