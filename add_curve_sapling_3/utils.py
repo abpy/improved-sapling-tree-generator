@@ -455,11 +455,11 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     dirVec *= stem.segL * tf
 
     # Get the end point position
-    end_co = stem.p.co.copy()
+    end_co = stem.p.co.copy() + dirVec
 
     stem.spline.bezier_points.add()
     newPoint = stem.spline.bezier_points[-1]
-    (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (end_co + dirVec, hType, hType)
+    (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (end_co, hType, hType)
     newPoint.radius = stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)
     if (stem.seg == stem.segMax-1) and closeTip:
         newPoint.radius = 0.0
@@ -1117,7 +1117,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                     splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, nrings,
-                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, boneStep, rotate, rotateV, leaves, leafType):
+                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -1254,10 +1254,9 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 tVals.append(1.0)
             if (n != levels - 1) and (branches[min(3, n+1)] == 0):
                 tVals = []
-
-            # If leafType is '4' then we need to make sure the only point which sprouts is the end of the spline
-            #if (n == levels - 1) and (not st.children):
-            #    tVals = [1.0]
+            
+            if (n < levels - 1) and noTip:
+                tVals = tVals[:-1]
             
             # remove some of the points because of baseSize
             trimNum = int(baseSize * (len(tVals) + 1))
@@ -1267,7 +1266,8 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             if (n == 0) and (nrings > 0):
                 #tVals = [(floor(t * nrings)) / nrings for t in tVals[:-1]]
                 tVals = [(floor(t * nrings) / nrings) * uniform(.995, 1.005) for t in tVals[:-1]]
-                tVals.append(1)
+                if not noTip:
+                    tVals.append(1)
                 tVals = [t for t in tVals if t > baseSize]
 
             #branch distribution
@@ -1404,6 +1404,7 @@ def addTree(props):
     rootFlare = props.rootFlare
     autoTaper = props.autoTaper
     taper = props.taper#
+    noTip = props.noTip
     radiusTweak = props.radiusTweak
     ratioPower = props.ratioPower#
     downAngle = toRad(props.downAngle)#
@@ -1618,7 +1619,7 @@ def addTree(props):
                                                   pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, 
                                                   branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight,
-                                                  attractOut, rMode, lengthV, taperCrown, boneStep, rotate, rotateV, leaves, leafType)
+                                                  attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType)
 
         levelCount.append(len(cu.splines))
     

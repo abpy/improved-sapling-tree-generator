@@ -239,6 +239,9 @@ class ImportData(bpy.types.Operator):
             settings['leafType'] = '4'
         if settings['leafRotate'] < 1:
             settings['leafType'] = '2'
+        
+        if 'noTip' not in settings:
+            settings['noTip'] = False
             
         # Set the flag to use the settings
         useSet = True
@@ -477,6 +480,9 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=[1, 1, 1, 1],
         size=4, update=update_tree)
+    noTip = BoolProperty(name='No branch at stem tip',
+        description='Useful for non-typical / abstract trees',
+        default=False, update=update_tree)
     radiusTweak = FloatVectorProperty(name='Tweak Radius',
         description='multiply radius by this factor',
         min=0.0,
@@ -802,7 +808,9 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'closeTip')
             box.prop(self, 'rootFlare')
             
-            box.prop(self, 'autoTaper')
+            row = box.row()
+            row.prop(self, 'autoTaper')
+            row.prop(self, 'noTip')
             
             split = box.split()
             col = split.column()
@@ -971,12 +979,13 @@ class AddTree(bpy.types.Operator):
                 setattr(self, 'levels', min(settings['levels'], 2))
                 setattr(self, 'showLeaves', False)
             useSet = False
-        if not self.do_update:
+        if self.do_update:
+            addTree(self)
+            #cProfile.runctx("addTree(self)", globals(), locals())
+            print("Tree creation in %0.1fs" %(time.time()-start_time))
+            return {'FINISHED'}
+        else:
             return {'PASS_THROUGH'}
-        addTree(self)
-        #cProfile.runctx("addTree(self)", globals(), locals())
-        print("Tree creation in %0.1fs" %(time.time()-start_time))
-        return {'FINISHED'}
     
     def invoke(self, context, event):
 #        global settings, useSet
