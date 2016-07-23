@@ -262,8 +262,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     if (n == 0) and (kp <= splitHeight):
         sCurv = 0.0
     
-    #curveangle = sCurv + (uniform(-stem.curvV, stem.curvV) * kp)
-    #curveVar = uniform(-stem.curvV, stem.curvV) * kp
+    if stem.seg == 0:
+        sCurv = 0
+    
     curveangle = sCurv + (uniform(0, stem.curvV) * kp * stem.curvSignx)
     curveVar = uniform(0, stem.curvV) * kp * stem.curvSigny
     stem.curvSignx *= -1
