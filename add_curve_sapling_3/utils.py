@@ -262,9 +262,6 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     if (n == 0) and (kp <= splitHeight):
         sCurv = 0.0
     
-    if stem.seg == 0:
-        sCurv = 0
-    
     curveangle = sCurv + (uniform(0, stem.curvV) * kp * stem.curvSignx)
     curveVar = uniform(0, stem.curvV) * kp * stem.curvSigny
     stem.curvSignx *= -1
@@ -462,12 +459,22 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     newPoint = stem.spline.bezier_points[-1]
     (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (end_co, hType, hType)
     newPoint.radius = stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)
+    
     if (stem.seg == stem.segMax-1) and closeTip:
         newPoint.radius = 0.0
-    # There are some cases where a point cannot have handles as VECTOR straight away, set these now.
+    # Set bezier handles for first point.
     if len(stem.spline.bezier_points) == 2:
         tempPoint = stem.spline.bezier_points[0]
-        (tempPoint.handle_left_type, tempPoint.handle_right_type) = ('VECTOR', 'VECTOR')
+        if hType is 'AUTO':
+            dirVec = zAxis.copy()
+            dirVec.rotate(dir)
+            dirVec = dirVec * stemsegL * 0.33
+            (tempPoint.handle_left_type, tempPoint.handle_right_type) = ('ALIGNED', 'ALIGNED')
+            tempPoint.handle_right = tempPoint.co + dirVec
+            tempPoint.handle_left = tempPoint.co - dirVec
+        elif hType is 'VECTOR':
+            (tempPoint.handle_left_type, tempPoint.handle_right_type) = ('VECTOR', 'VECTOR')
+        
     # Update the last point in the spline to be the newly added one
     stem.updateEnd()
     #return splineList
