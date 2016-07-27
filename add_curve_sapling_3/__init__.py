@@ -19,7 +19,7 @@
 bl_info = {
     "name": "Sapling_3",
     "author": "Andrew Hale (TrumanBlending), modified by Aaron Buchler in 2015",
-    "version": (0, 3, 1),
+    "version": (0, 3, 3),
     "blender": (2, 64, 0),
     "location": "View3D > Add > Curve",
     "description": ("Adds a parametric tree. The method is presented by "
