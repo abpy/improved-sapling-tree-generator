@@ -3,7 +3,7 @@ A new version of Blenders sapling tree generator with improvements, new features
 
 This addon has been [added](https://developer.blender.org/rBAc3a6d9132a44afd254fa120157c66e72b751e6f1) to blender master as of version [f7cca89](https://github.com/abpy/improved-sapling-tree-generator/commit/720f312cb083c7a1b866f006b38fcf67521a6f39) with small changes. I will continue to make changes here, perhaps larger things or more experimental features, or maybe just small things.
 
-####Big Changes
+###Big Changes
 Branch splitting is now much improved, especially for trunk splits. Splitting is controlable, more realistic, and works with auto curve handles.
 Splitting is more balanced and uniformly random.
 
@@ -18,7 +18,7 @@ An object can now be set to use for leaves with dupliverts or duplifaces
 
 Curves can now be converted into a mesh that uses the skin modifier. With the mesh it is now possible to simplfy the armature greatly reducing the number of bones and the time it takes to generate the armature. You can now set the number of branching levels to make bones for, and the number of bones in each branch.
 
-####Change Log
+###Change Log
 * Rearranged Interface
 * Moved radius settings to a seperate panel
 * Branch spliting now works more predictably
