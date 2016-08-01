@@ -1755,6 +1755,7 @@ def addTree(props):
         treeMesh = bpy.data.meshes.new('treemesh')
         treeObj = bpy.data.objects.new('treemesh', treeMesh)
         bpy.context.scene.objects.link(treeObj)
+        treeObj.location=bpy.context.scene.cursor_location
 
         treeVerts = []
         treeEdges = []
