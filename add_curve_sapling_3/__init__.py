@@ -233,7 +233,6 @@ class ImportData(bpy.types.Operator):
         #use old leaf settings
         if 'leafType' not in settings:
             settings['leafType'] = '0'
-        settings['leafType'] = '0'
         if settings['leaves'] < 0:
             settings['leaves'] = abs(settings['leaves'])
             settings['leafType'] = '4'
