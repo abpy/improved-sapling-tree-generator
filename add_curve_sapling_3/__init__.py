@@ -47,6 +47,7 @@ from bpy.props import *
 
 from add_curve_sapling_3.utils import *
 
+treeList = []
 useSet = False
 
 shapeList = [('0', 'Conical (0)', 'Shape = 0'),
@@ -316,6 +317,9 @@ class AddTree(bpy.types.Operator):
     seed = IntProperty(name='Random Seed',
         description='The seed of the random number generator',
         default=0, update=update_tree)
+    seedRange = IntProperty(name='Tree Count',
+        description='The number of similar trees to be generated',
+        default=1, update=update_tree)
     handleType = IntProperty(name='Handle Type',
         description='The type of curve handles',
         min=0,
@@ -757,6 +761,7 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'nrings')
             box.label("")
             box.prop(self, 'seed')
+            box.prop(self, 'seedRange')
             
             box.label("Tree Scale:")
             row = box.row()
@@ -979,7 +984,22 @@ class AddTree(bpy.types.Operator):
                 setattr(self, 'showLeaves', False)
             useSet = False
         if self.do_update:
-            addTree(self)
+            firstSeed = getattr(self, 'seed', 0)
+            count = 0
+            treeCount = getattr(self, 'seedRange', 1)
+            if (treeCount < 1):
+                treeCount = 1
+                setattr(self, 'seedRange', 1)
+            elif (treeCount > 100):
+                treeCount = 100
+                setattr(self, 'seedRange', 100)
+            while(count < treeCount):
+                treeList.append(addTree(self))
+                count += 1
+                newSeed = getattr(self, 'seed', 0)
+                newSeed += 1
+                setattr(self, 'seed', newSeed)
+            setattr(self, 'seed', firstSeed)
             #cProfile.runctx("addTree(self)", globals(), locals())
             print("Tree creation in %0.1fs" %(time.time()-start_time))
             return {'FINISHED'}
