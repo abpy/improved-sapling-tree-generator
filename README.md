@@ -85,6 +85,7 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
 * leaf animation
 * animation looping
 * option to show only the armature for fast animation playback
+* ability to create many trees in one session
 
 ######notes
 'leaf bend' seems to be broken and probably shouldn't be used, it may be removed soon
