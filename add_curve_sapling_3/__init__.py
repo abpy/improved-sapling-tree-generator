@@ -106,26 +106,7 @@ settings = [('0', 'Geometry', 'Geometry'),
 
 branchmodes = [("original", "Original", "rotate around each branch"),
               ("rotate", "Rotate", "evenly distribute  branches to point outward from center of tree"),
-              ("distance", "Distance", "remove overlaping branches")]#,
-              #("random", "Random", "choose random point")]
-
-
-def getPresetpath():
-    """Support user defined scripts directory
-       Find the first ocurrence of add_curve_sapling/presets in possible script paths
-       and return it as preset path"""
-    #presetpath = ""
-    #for p in bpy.utils.script_paths():
-    #    presetpath = os.path.join(p, 'addons', 'add_curve_sapling_3', 'presets')
-    #    if os.path.exists(presetpath):
-    #        break
-    #return presetpath
-    
-    # why not just do this
-    script_file = os.path.realpath(__file__)
-    directory = os.path.dirname(script_file)
-    directory = os.path.join(directory, "presets")
-    return directory
+              ("distance", "Distance", "remove overlapping branches")]
 
 
 def getPresetpaths():
@@ -154,23 +135,6 @@ class ExportData(bpy.types.Operator):
     def execute(self, context):
         # Unpack some data from the input
         data, filename, overwrite = eval(self.data)
-
-#        try:
-#            # Check whether the file exists by trying to open it.
-#            f = open(os.path.join(getPresetpaths()[1], filename + '.py'), 'r')
-#            f.close()
-#            # If it exists then report an error
-#            self.report({'ERROR_INVALID_INPUT'}, 'Preset Already Exists')
-#            return {'CANCELLED'}
-#        except IOError:
-#            if data:
-#                # If it doesn't exist, create the file with the required data
-#                f = open(os.path.join(getPresetpaths()[1], filename + '.py'), 'w')
-#                f.write(data)
-#                f.close()
-#                return {'FINISHED'}
-#            else:
-#                return {'CANCELLED'}
 
         fpath1 = os.path.join(getPresetpaths()[0], filename + '.py')
         fpath2 = os.path.join(getPresetpaths()[1], filename + '.py')
@@ -272,11 +236,6 @@ class AddTree(bpy.types.Operator):
     def objectList(self, context):
         objects = []
         bObjects = bpy.data.objects
-#        try:
-#            bObjects = bpy.data.objects
-#        except AttributeError:
-#            pass
-#        else:
         for obj in bObjects:
             if (obj.type in ['MESH', 'CURVE', 'SURFACE']) and (obj.name not in ['tree', 'leaves']):
                 objects.append((obj.name, obj.name, ""))
@@ -302,6 +261,7 @@ class AddTree(bpy.types.Operator):
         description='Choose the settings to modify',
         items=settings,
         default='0', update=no_update_tree)
+    
     bevel = BoolProperty(name='Bevel',
         description='Whether the curve is beveled',
         default=False, update=update_tree)
@@ -317,24 +277,33 @@ class AddTree(bpy.types.Operator):
     seed = IntProperty(name='Random Seed',
         description='The seed of the random number generator',
         default=0, update=update_tree)
-    handleType = IntProperty(name='Handle Type',
-        description='The type of curve handles',
+    handleType = EnumProperty(name='Handle Type',
+        description='The type of bezier curve handles',
+        items=handleList,
+        default='0', update=update_tree)
+    bevelRes = IntProperty(name='Bevel Resolution',
+        description='The bevel resolution of the curves',
         min=0,
-        max=1,
+        max=32,
         default=0, update=update_tree)
+    resU = IntProperty(name='Curve Resolution',
+        description='The resolution along the curves',
+        min=1,
+        default=4, update=update_tree)
+    
     levels = IntProperty(name='Levels',
-        description='Number of recursive branches (Levels)',
+        description='Number of recursive branches',
         min=1,
         max=6,
         soft_max=4,
         default=3, update=update_tree)
     length = FloatVectorProperty(name='Length',
-        description='The relative lengths of each branch level (nLength)',
+        description='The relative lengths of each branch level',
         min=0.000001,
         default=[1, 0.3, 0.6, 0.45],
         size=4, update=update_tree)
     lengthV = FloatVectorProperty(name='Length Variation',
-        description='The relative length variations of each level (nLengthV)',
+        description='The relative length variations of each level',
         min=0.0,
         max=1.0,
         default=[0, 0, 0, 0],
@@ -345,33 +314,33 @@ class AddTree(bpy.types.Operator):
         soft_max=1.0,
         default=0, update=update_tree)
     branches = IntVectorProperty(name='Branches',
-        description='The number of branches grown at each level (nBranches)',
+        description='The number of branches grown at each level',
         min=0,
         default=[50, 30, 10, 10],
         size=4, update=update_tree)
     curveRes = IntVectorProperty(name='Curve Resolution',
-        description='The number of segments on each branch (nCurveRes)',
+        description='The number of segments on each branch',
         min=1,
         default=[3, 5, 3, 1],
         size=4, update=update_tree)
     curve = FloatVectorProperty(name='Curvature',
-        description='The angle of the end of the branch (nCurve)',
+        description='The angle of the end of the branch',
         default=[0, -40, -40, 0],
         size=4, update=update_tree)
     curveV = FloatVectorProperty(name='Curvature Variation',
-        description='Variation of the curvature (nCurveV)',
+        description='Variation of the curvature',
         default=[20, 50, 75, 0],
         size=4, update=update_tree)
     curveBack = FloatVectorProperty(name='Back Curvature',
-        description='Curvature for the second half of a branch (nCurveBack)',
+        description='Curvature for the second half of a branch',
         default=[0, 0, 0, 0],
         size=4, update=update_tree)
     baseSplits = IntProperty(name='Base Splits',
-        description='Number of trunk splits at its base (nBaseSplits)',
+        description='Number of trunk splits at its base',
         min=0,
         default=0, update=update_tree)
     segSplits = FloatVectorProperty(name='Segment Splits',
-        description='Number of splits per segment (nSegSplits)',
+        description='Number of splits per segment',
         min=0,
         soft_max=3,
         default=[0, 0, 0, 0],
@@ -384,19 +353,19 @@ class AddTree(bpy.types.Operator):
         items=branchmodes,
         default="rotate", update=update_tree)
     splitAngle = FloatVectorProperty(name='Split Angle',
-        description='Angle of branch splitting (nSplitAngle)',
+        description='Angle of branch splitting',
         default=[0, 0, 0, 0],
         size=4, update=update_tree)
     splitAngleV = FloatVectorProperty(name='Split Angle Variation',
-        description='Variation in the split angle (nSplitAngleV)',
+        description='Variation in the split angle',
         default=[0, 0, 0, 0],
         size=4, update=update_tree)
     scale = FloatProperty(name='Scale',
-        description='The tree scale (Scale)',
+        description='The tree scale',
         min=0.0,
         default=13.0, update=update_tree)
     scaleV = FloatProperty(name='Scale Variation',
-        description='The variation in the tree scale (ScaleV)',
+        description='The variation in the tree scale',
         default=3.0, update=update_tree)
     attractUp = FloatVectorProperty(name='Vertical Attraction',
         description='Branch upward attraction',
@@ -409,7 +378,7 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         size=4, update=update_tree)
     shape = EnumProperty(name='Shape',
-        description='The overall shape of the tree (Shape)',
+        description='The overall shape of the tree',
         items=shapeList3,
         default='7', update=update_tree)
     shapeS = EnumProperty(name='Secondary Branches Shape',
@@ -417,7 +386,7 @@ class AddTree(bpy.types.Operator):
         items=shapeList4,
         default='4', update=update_tree)
     customShape = FloatVectorProperty(name='Custom Shape',
-        description='custom shape branch length at (Base, Middle, Middle Position, Top)',
+        description='custom shape branch length at \n(Base, Middle, Middle Position, Top)',
         size=4,
         min=.01,
         max=1,
@@ -457,7 +426,7 @@ class AddTree(bpy.types.Operator):
         soft_max=2.0,
         default=0.0, update=update_tree)
     ratio = FloatProperty(name='Ratio',
-        description='Base radius size (Ratio)',
+        description='Ratio of tree scale to base radius',
         min=0.0,
         default=0.015, update=update_tree)
     minRadius = FloatProperty(name='Minimum Radius',
@@ -475,7 +444,7 @@ class AddTree(bpy.types.Operator):
         description='Calculate taper automaticly based on branch lengths',
         default=True, update=update_tree)
     taper = FloatVectorProperty(name='Taper',
-        description='The fraction of tapering on each branch (nTaper)',
+        description='The fraction of tapering on each branch',
         min=0.0,
         max=1.0,
         default=[1, 1, 1, 1],
@@ -489,18 +458,16 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=[1, 1, 1, 1],
         size=4, update=update_tree)                 
-    ratioPower = FloatProperty(name='Branch Radius Ratio',
-        description=('Power which defines the radius of a branch compared to '
-        'the radius of the branch it grew from (RatioPower)'),
+    ratioPower = FloatProperty(name='Radius Ratio Power',
+        description='Power which defines the radius of a branch compared to the radius of the branch it grew from',
         min=0.0,
         default=1.2, update=update_tree)
     downAngle = FloatVectorProperty(name='Down Angle',
-        description=('The angle between a new branch and the one it grew '
-        'from (nDownAngle)'),
+        description='The angle between a new branch and the one it grew from',
         default=[90, 60, 45, 45],
         size=4, update=update_tree)
     downAngleV = FloatVectorProperty(name='Down Angle Variation',
-        description='Angle to decrease Down Angle by towards end of parent branch (negative values add random variation)',
+        description='Angle to decrease Down Angle by towards end of parent branch \n(negative values add random variation)',
         default=[0, -50, 10, 10],
         size=4, update=update_tree)
     useOldDownAngle = BoolProperty(name='Use old down angle variation',
@@ -509,24 +476,24 @@ class AddTree(bpy.types.Operator):
         description = '(first level) Rotate branch to match parent branch',
         default=True, update=update_tree)
     rotate = FloatVectorProperty(name='Rotate Angle',
-        description='The angle of a new branch around the one it grew from (negative values make branches rotate opposite from the previous one)',
+        description='The angle of a new branch around the one it grew from \n(negative values make branches rotate opposite from the previous one)',
         default=[137.5, 137.5, 137.5, 137.5],
         size=4, update=update_tree)
     rotateV = FloatVectorProperty(name='Rotate Angle Variation',
-        description='Variation in the rotate angle (nRotateV)',
+        description='Variation in the rotate angle',
         default=[0, 0, 0, 0],
         size=4, update=update_tree)
     scale0 = FloatProperty(name='Radius Scale',
-        description='The scale of the trunk radius (0Scale)',
+        description='The scale of the trunk radius',
         min=0.0,
         default=1.0, update=update_tree)
     scaleV0 = FloatProperty(name='Radius Scale Variation',
-        description='Variation in the radius scale (0ScaleV)',
+        description='Variation in the radius scale',
         min=0.0,
         max=1.0,
         default=0.2, update=update_tree)
     pruneWidth = FloatProperty(name='Prune Width',
-        description='The width of the envelope (PruneWidth)',
+        description='The width of the envelope',
         min=0.0,
         default=0.4, update=update_tree)
     pruneBase = FloatProperty(name='Prune Base Height',
@@ -535,25 +502,22 @@ class AddTree(bpy.types.Operator):
         max=1.0,
         default=0.3, update=update_tree)
     pruneWidthPeak = FloatProperty(name='Prune Width Peak',
-        description=('Fraction of envelope height where the maximum width '
-        'occurs (PruneWidthPeak)'),
+        description='Fraction of envelope height where the maximum width occurs',
         min=0.0,
         default=0.6, update=update_tree)
     prunePowerHigh = FloatProperty(name='Prune Power High',
-        description=('Power which determines the shape of the upper portion '
-        'of the envelope (PrunePowerHigh)'),
+        description='Power which determines the shape of the upper portion of the envelope',
         default=0.5, update=update_tree)
     prunePowerLow = FloatProperty(name='Prune Power Low',
-        description=('Power which determines the shape of the lower portion '
-        'of the envelope (PrunePowerLow)'),
+        description='Power which determines the shape of the lower portion of the envelope',
         default=0.001, update=update_tree)
     pruneRatio = FloatProperty(name='Prune Ratio',
-        description='Proportion of pruned length (PruneRatio)',
+        description='Proportion of pruned length',
         min=0.0,
         max=1.0,
         default=1.0, update=update_tree)
     leaves = IntProperty(name='Leaves',
-        description='Maximum number of leaves per branch (negative values grow leaves from branch tip (palmate compound leaves))',
+        description='Maximum number of leaves per branch',
         min=0,
         default=25, update=update_tree)
     leafType = EnumProperty(name='Leaf Type',
@@ -565,12 +529,12 @@ class AddTree(bpy.types.Operator):
         description='The angle between a new leaf and the branch it grew from',
         default=45, update=update_leaves)
     leafDownAngleV = FloatProperty(name='Leaf Down Angle Variation',
-        description='Angle to decrease Down Angle by towards end of parent branch (negative values add random variation)',
+        description='Angle to decrease Down Angle by towards end of parent branch',
         min=0,
         default=10, update=update_tree)
     leafRotate = FloatProperty(name='Leaf Rotate Angle',
-        description='The angle of a new leaf around the one it grew from (negative values make leaves rotate opposite from the previous one)',
-        default=137.5, update=update_tree)
+        description='The rotate angle for Alternate and Opposite leaves',
+        default=90, update=update_tree)
     leafRotateV = FloatProperty(name='Rotation Variation',
         description='Add randomness to leaf orientation',
         default=0.0, update=update_leaves)
@@ -589,12 +553,11 @@ class AddTree(bpy.types.Operator):
     #    default="+0", update=update_leaves)
     
     leafScale = FloatProperty(name='Leaf Scale',
-        description='The scaling applied to the whole leaf (LeafScale)',
+        description='The scaling applied to the whole leaf',
         min=0.0,
         default=0.17, update=update_leaves)
     leafScaleX = FloatProperty(name='Leaf Scale X',
-        description=('The scaling applied to the x direction of the leaf '
-        '(LeafScaleX)'),
+        description='The scaling applied to the x direction of the leaf',
         min=0.0,
         default=1.0, update=update_leaves)
     leafScaleT = FloatProperty(name='Leaf Scale Taper',
@@ -615,12 +578,6 @@ class AddTree(bpy.types.Operator):
         description='Object to use for leaf instancing if Leaf Shape is DupliFaces or DupliVerts',
         items=objectList,
         update=update_leaves)
-    
-#    bend = FloatProperty(name='Leaf Bend',
-#        description='The proportion of bending applied to the leaf (Bend)',
-#        min=0.0,
-#        max=1.0,
-#        default=0.0, update=update_leaves)
 
     leafangle = FloatProperty(name='Leaf Angle',
         description='Leaf vertical attraction',
@@ -632,32 +589,19 @@ class AddTree(bpy.types.Operator):
         description='The way leaves are distributed on branches',
         items=shapeList4,
         default='6', update=update_tree)
-    bevelRes = IntProperty(name='Bevel Resolution',
-        description='The bevel resolution of the curves',
-        min=0,
-        max=32,
-        default=0, update=update_tree)
-    resU = IntProperty(name='Curve Resolution',
-        description='The resolution along the curves',
-        min=1,
-        default=4, update=update_tree)
-    handleType = EnumProperty(name='Handle Type',
-        description='The type of handles used in the spline',
-        items=handleList,
-        default='0', update=update_tree)
     
     armAnim = BoolProperty(name='Armature Animation',
         description='Whether animation is added to the armature',
         default=False, update=update_tree)
     previewArm = BoolProperty(name='Fast Preview',
-        description='Disable armature modifier, hide tree, and set bone display to wire, for fast playback',
-        ##Disable skin modifier and hide tree and armature, for fast playback
+        description=('Disable armature modifier, hide tree, and set bone display to wire, for fast playback \n'
+                     'If Make Mesh is enabled: \nDisable skin modifier, hide curve tree and armature'),
         default=False, update=update_tree)
     leafAnim = BoolProperty(name='Leaf Animation',
         description='Whether animation is added to the leaves',
         default=False, update=update_tree)
     frameRate = FloatProperty(name='Animation Speed',
-        description=('Adjust speed of animation, relative to scene frame rate'),
+        description='Adjust speed of animation, relative to scene frame rate',
         min=0.001,
         default=1, update=update_tree)
     loopFrames = IntProperty(name='Loop Frames',
@@ -718,13 +662,6 @@ class AddTree(bpy.types.Operator):
         description='When checked, overwrite existing preset files when saving',
         default=False, update=no_update_tree)
 
-#    startCurv = FloatProperty(name='Trunk Starting Angle',
-#        description=('The angle between vertical and the starting direction '
-#        'of the trunk'),
-#        min=0.0,
-#        max=360,
-#        default=0.0, update=update_tree)
-
     @classmethod
     def poll(cls, context):
         return context.mode == 'OBJECT'
@@ -732,9 +669,6 @@ class AddTree(bpy.types.Operator):
     def draw(self, context):
 
         layout = self.layout
-
-        # Branch specs
-        #layout.label('Tree Definition')
 
         layout.prop(self, 'chooseSet')
 
@@ -925,10 +859,6 @@ class AddTree(bpy.types.Operator):
             row.prop(self, 'leafScaleV')
             
             #box.prop(self, 'horzLeaves')
-            #box.prop(self, 'leafangle')
-            
-            #box.label(" ")
-            #box.prop(self, 'bend')
 
         elif self.chooseSet == '6':
             box = layout.box()
