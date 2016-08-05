@@ -62,6 +62,7 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
 * add way of setting the direction of the leaf dupli object
 * add new 'Distance' Branching Mode that removes overlapping branches based on distance.
   this mode works about as good as 'rotate' but it particularly improves branching at the top of multi trunked trees where rotate would produce gaps. This should be considered experemental, but it probably won't change much.
+* New default tree with better starting settings
 
 ######New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
