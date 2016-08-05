@@ -196,8 +196,26 @@ def findChildPoints(stemList, numChild):
     numMain = round(numPerSeg*stemList[0].segMax, 0)
     return [(a+1)/(numMain) for a in range(int(numMain))]
 
-def findChildPoints2(stemList, numChild):
+def findChildPoints2(numChild):
     return [(a+1)/(numChild) for a in range(int(numChild))]
+
+def findChildPoints3(stemList, numChild):
+    maxSegs = stemList[0].segMax
+    segNum = [0] * maxSegs
+    for stem in stemList:
+        segs = len(stem.spline.bezier_points)-2
+        for n in range(0, segs+1):
+            segNum[n] += 1
+    segNum = segNum[::-1]
+    
+    childPoints = []
+    for i, s in enumerate(segNum):      
+        start = i / maxSegs
+        end = (i+1) / maxSegs
+        numPoints = int(round((numChild / maxSegs) / s ** .5))
+        cp = [((a / numPoints) * (end - start) + start) for a in range(numPoints)]
+        childPoints.extend(cp)
+    return childPoints
 
 def interpStem(stem, tVals, maxOffset, baseSize):
     points = stem.spline.bezier_points
@@ -910,6 +928,22 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curv
         stemSpline(newSpline, curveVal, curveV[0] / curveRes[0], attractUp[0], 0, curveRes[0], branchL / curveRes[0],
                    childStems, startRad, endRad, 0, 0, None))
 
+#rotate vector by quat declination while canceling out Z rotation
+def rotateQuatEuler(vector, quat ,bRotate):
+    edir = quat.to_euler('XYZ', Euler((0, 0, bRotate), 'XYZ'))
+    edir[0] = 0
+    edir[1] = 0
+
+    edir[2] = -edir[2]
+    vector.rotate(edir)
+
+    dec = declination(quat)
+    vector.rotate(Matrix.Rotation(radians(dec), 3, 'X'))
+
+    edir[2] = -edir[2]
+    vector.rotate(edir)
+    
+    return vector
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
                     downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV, levels, n, ratioPower, resU,
@@ -926,10 +960,11 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
     if (n == 1) and (rMode != "original"):
         childP_T = OrderedDict()
         childP_L = []
-        for p in childP:
+        for i, p in enumerate(childP):
             if p.offset == 1:
                 childP_L.append(p)
             else:
+                p.index = i
                 if p.offset not in childP_T:
                     childP_T[p.offset] = [p]
                 else:
@@ -982,27 +1017,48 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                 bv = Vector((b[0], -b[1]))
                 cv = v - bv
                 a = atan2(cv[0], cv[1])
-                #rot_a.append(a)
-                
-#                # add fill points at top  #experimental
-#                fillHeight = 1 - degrees(rotateV[3])#0.8
-#                if fillHeight < 1:
-#                    w = (p[0].offset - fillHeight) / (1- fillHeight)
-#                    prob_b = random() < w
-#                else:
-#                    prob_b = False
-#                
-#                if (p[0].offset > fillHeight): #prob_b and (len(p) > 1):  ##(p[0].offset > fillHeight) and 
-#                    childP.append(p[randint(0, len(p)-1)])
-#                    rot_a.append(bRotate)# + pi)
                     
                 childP.append(p[idx])
                 rot_a.append(a)
+            
+            elif rMode == 'distance':
+                for i, br in enumerate(p):
+                    rotV = rotateV[n] * .5
+                    bRotate = rotate[n] * br.index
+                    bL = br.lengthPar * length[1] * shapeRatio(shape, (1 - br.stemOffset) / (1 - baseSize), custom=customShape)
+                    if downAngleV[1] > 0:
+                        downA = downAngle[n] + (-downAngleV[n] * (1 - (1 - br.stemOffset) / (1 - baseSize)) ** 2)
+                    else:
+                        downA = downAngle[n]
+                        
+                    downRotMat = Matrix.Rotation(downA, 3, 'X')
+                    rotMat = Matrix.Rotation(bRotate, 3, 'Z')
+                    
+                    bVec = zAxis.copy()
+                    bVec.rotate(downRotMat)
+                    bVec.rotate(rotMat)
+                    bVec = rotateQuatEuler(bVec, br.quat, bRotate)
+                    bVec *= bL
+                    p1 = bVec + br.co
+                    
+                    #distance to other branches
+                    isIntersect = []
+                    for branch in p:
+                        p2 = branch.co
+                        p3 = p2 - p1
+                        l = p3.length * uniform(1.0, 1.1)
+                        bL = branch.lengthPar * length[1] * shapeRatio(shape, (1 - branch.stemOffset) / (1 - baseSize), custom=customShape)
+                        isIntersect.append(l < bL)
+
+                    del isIntersect[i]
+                    
+                    if not any(isIntersect):
+                        childP.append(br)
+                        rot_a.append(bRotate + uniform(-rotV, rotV))
                 
             else:
                 idx = randint(0, len(p)-1)
                 childP.append(p[idx])
-            #childP.append(p[idx])
 
         childP.extend(childP_L)
         rot_a.extend([0] * len(childP_L))
@@ -1027,7 +1083,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             if downAngleV[n] < 0.0:
                 downV = uniform(-downAngleV[n], downAngleV[n])
             else:
-                downV = -downAngleV[n] * (1 - (1 - p.offset) / (1 - baseSize)) ** 2 #(110, 80) = (60, -50)
+                downV = -downAngleV[n] * (1 - (1 - p.stemOffset) / (1 - baseSize)) ** 2 #(110, 80) = (60, -50)
         
         if p.offset == 1:
             downRotMat = Matrix.Rotation(0, 3, 'X')
@@ -1042,7 +1098,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
             oldRotate += rotate[n]
         bRotate = oldRotate + uniform(-rotateV[n], rotateV[n])
         
-        if (n == 1) and (rMode == "rotate"):
+        if (n == 1) and  (rMode in ["rotate", 'distance']):
             bRotate = rot_a[i]
             
         rotMat = Matrix.Rotation(bRotate, 3, 'Z')
@@ -1052,20 +1108,9 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         tempPos.rotate(rotMat)
         
         #use quat angle
-        if (rMode == "rotate") and (n == 1) and (p.offset != 1):
+        if (rMode in ["rotate", 'distance']) and (n == 1) and (p.offset != 1):
             if useParentAngle:
-                edir = p.quat.to_euler('XYZ', Euler((0, 0, bRotate), 'XYZ'))
-                edir[0] = 0
-                edir[1] = 0
-
-                edir[2] = -edir[2]
-                tempPos.rotate(edir)
-
-                dec = declination(p.quat)
-                tempPos.rotate(Matrix.Rotation(radians(dec), 3, 'X'))
-
-                edir[2] = -edir[2]
-                tempPos.rotate(edir)
+                tempPos = rotateQuatEuler(tempPos, p.quat, bRotate)
         else:
             tempPos.rotate(p.quat)
         
@@ -1244,8 +1289,10 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
         
         # If the search will halt on the next iteration then we need to make sure we sprout child points to grow the next splines or leaves
         if (((currentMax - currentMin) < 0.005) or not prune) or forceSprout:
-            if (n == 0) and (rMode != "original"):
-                tVals = findChildPoints2(splineList, st.children)
+            if (n == 0) and (rMode in ['rotate', 'random']):
+                tVals = findChildPoints2(st.children)
+            elif (n == 0) and (rMode == 'distance'):
+                tVals = findChildPoints3(splineList, st.children)
             elif (n == levels - 1) and leafType in ['1', '3']: #oppositely attached leaves
                 tVal = findChildPoints(splineList, st.children // 2)
                 tVals = []
@@ -1267,8 +1314,11 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 tVals = tVals[:-1]
             
             # remove some of the points because of baseSize
-            trimNum = int(baseSize * (len(tVals) + 1))
-            tVals = tVals[trimNum:]
+            if (n == 0) and (rMode == 'distance'):
+                tVals = [t for t in tVals if t > baseSize]
+            else:
+                trimNum = int(baseSize * (len(tVals) + 1))
+                tVals = tVals[trimNum:]
             
             #grow branches in rings/whorls
             if (n == 0) and (nrings > 0):

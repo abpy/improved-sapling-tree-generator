@@ -106,7 +106,8 @@ settings = [('0', 'Geometry', 'Geometry'),
 
 branchmodes = [("original", "Original", "rotate around each branch"),
               ("rotate", "Rotate", "evenly distribute  branches to point outward from center of tree"),
-              ("random", "Random", "choose random point")]
+              ("distance", "Distance", "remove overlaping branches")]#,
+              #("random", "Random", "choose random point")]
 
 
 def getPresetpath():
