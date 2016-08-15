@@ -900,7 +900,6 @@ class AddTree(bpy.types.Operator):
         # Ensure the use of the global variables
         global settings, useSet
         start_time = time.time()
-        #bpy.ops.ImportData.filename = "quaking_aspen"
         # If we need to set the properties from a preset then do it here
         if useSet:
             for a, b in settings.items():
@@ -920,7 +919,7 @@ class AddTree(bpy.types.Operator):
     def invoke(self, context, event):
 #        global settings, useSet
 #        useSet = True
-        bpy.ops.sapling.importdata(filename = "quaking_aspen.py")
+        bpy.ops.sapling.importdata(filename = "Default Tree.py")
         return self.execute(context)
 
 

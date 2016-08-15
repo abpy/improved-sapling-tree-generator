@@ -271,6 +271,14 @@ def anglemean(a1, a2, fac):
     y = y1 + (y2 - y1) * fac
     return atan2(x, y)
 
+# convert quat to use declination without rotation
+def convertQuat(quat):
+    adir = zAxis.copy()
+    adir.rotate(quat)
+    dec = radians(declination(quat))
+    axis = Vector((-adir[1], adir[0], 0))
+    return Matrix.Rotation(dec, 3, axis)
+
 
 # This is the function which extends (or grows) a given stem.
 def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown, boneStep, rotate, rotateV):
@@ -289,16 +297,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     
     # First find the current direction of the stem
     dir = stem.quat()
-    
+
     if n == 0:
-        adir = zAxis.copy()
-        adir.rotate(dir)
-        
-        ry = atan2(adir[0], adir[2])
-        adir.rotate(Euler((0, -ry, 0)))
-        rx = atan2(adir[1], adir[2])
-        
-        dir = Euler((-rx, ry, 0), 'XYZ')
+        dir = convertQuat(dir)
     
     #length taperCrown
     if n == 0:
@@ -911,7 +912,6 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curv
     newPoint.co = Vector((0, 0, 0))
     newPoint.handle_right = Vector((0, 0, 1))
     newPoint.handle_left = Vector((0, 0, -1))
-    # (newPoint.handle_right_type, newPoint.handle_left_type) = ('VECTOR', 'VECTOR')
     branchL = scaleVal * length[0]
     curveVal = curve[0] / curveRes[0]
     #curveVal = curveVal * (branchL / scaleVal)
@@ -919,7 +919,7 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curv
         childStems = leaves
     else:
         childStems = branches[1]
-    startRad = scaleVal * ratio * scale0 * uniform(1-scaleV0, 1+scaleV0) ## * (scale0 + uniform(-scaleV0, scaleV0)) #
+    startRad = scaleVal * ratio * scale0 * uniform(1-scaleV0, 1+scaleV0)
     endRad = (startRad * (1 - taper[0])) ** ratioPower
     startRad = max(startRad, minRadius)
     endRad = max(endRad, minRadius)
@@ -928,22 +928,6 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curv
         stemSpline(newSpline, curveVal, curveV[0] / curveRes[0], attractUp[0], 0, curveRes[0], branchL / curveRes[0],
                    childStems, startRad, endRad, 0, 0, None))
 
-#rotate vector by quat declination while canceling out Z rotation
-def rotateQuatEuler(vector, quat ,bRotate):
-    edir = quat.to_euler('XYZ', Euler((0, 0, bRotate), 'XYZ'))
-    edir[0] = 0
-    edir[1] = 0
-
-    edir[2] = -edir[2]
-    vector.rotate(edir)
-
-    dec = declination(quat)
-    vector.rotate(Matrix.Rotation(radians(dec), 3, 'X'))
-
-    edir[2] = -edir[2]
-    vector.rotate(edir)
-    
-    return vector
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
                     downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV, levels, n, ratioPower, resU,
@@ -1037,7 +1021,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                     bVec = zAxis.copy()
                     bVec.rotate(downRotMat)
                     bVec.rotate(rotMat)
-                    bVec = rotateQuatEuler(bVec, br.quat, bRotate)
+                    bVec.rotate(convertQuat(br.quat))
                     bVec *= bL
                     p1 = bVec + br.co
                     
@@ -1108,9 +1092,9 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         tempPos.rotate(rotMat)
         
         #use quat angle
-        if (rMode in ["rotate", 'distance']) and (n == 1) and (p.offset != 1):
+        if (n == 1) and (p.offset != 1):
             if useParentAngle:
-                tempPos = rotateQuatEuler(tempPos, p.quat, bRotate)
+                tempPos.rotate(convertQuat(p.quat))
         else:
             tempPos.rotate(p.quat)
         
