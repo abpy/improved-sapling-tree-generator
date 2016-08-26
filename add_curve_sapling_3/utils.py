@@ -423,6 +423,8 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
                                stem.radS * bScale, stem.radE * bScale, len(cu.splines)-1, ofst, stem.quat())
             nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
             nstem.rLast = branchRot + pi
+            if hasattr(stem, 'isFirstTip'):
+                nstem.isFirstTip = True
             splineList.append(nstem)
             bone = 'bone'+(str(stem.splN)).rjust(3, '0')+'.'+(str(len(stem.spline.bezier_points)-2)).rjust(3, '0')
             bone = roundBone(bone, boneStep[n])
@@ -637,9 +639,10 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
 
 
 def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
-                    treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm, armLevels, makeMesh, boneStep):
+                    treeOb, treeObj, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm, armLevels, makeMesh, boneStep):
     arm = bpy.data.armatures.new('tree')
     armOb = bpy.data.objects.new('treeArm', arm)
+    armOb.location=bpy.context.scene.cursor_location
     bpy.context.scene.objects.link(armOb)
     # Create a new action to store all animation
     newAction = bpy.data.actions.new(name='windAction')
@@ -656,7 +659,7 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
     armMod.use_apply_on_spline = True
     armMod.object = armOb
     armMod.use_bone_envelopes = True
-    armMod.use_vertex_groups = False # curves don't have vertex groups (yet)
+    armMod.use_vertex_groups = False
     # If there are leaves then they need a modifier
     if leaves:
         armMod = leafObj.modifiers.new('windSway', 'ARMATURE')
@@ -901,7 +904,12 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
     bpy.ops.object.mode_set(mode='OBJECT')
     for p in armOb.pose.bones:
         p.rotation_mode = 'XYZ'
+    
     treeOb.parent = armOb
+    if makeMesh:
+        treeObj.parent = armOb
+    
+    return armOb
 
 
 def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU, scale0, scaleV0,
@@ -1137,9 +1145,15 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         #curveVal = curveVal * (branchL / scaleVal)
 
         # Add the new stem to list of stems to grow and define which bone it will be parented to
-        addstem(
-            stemSpline(newSpline, curveVal, curveVar, attractUp[n], 0, curveRes[n], branchL / curveRes[n], childStems,
-                       startRad, endRad, len(cu.splines) - 1, 0, p.quat))
+        #addstem(
+        #    stemSpline(newSpline, curveVal, curveVar, attractUp[n], 0, curveRes[n], branchL / curveRes[n], childStems,
+        #               startRad, endRad, len(cu.splines) - 1, 0, p.quat))
+        
+        nstem = stemSpline(newSpline, curveVal, curveVar, attractUp[n], 0, curveRes[n], branchL / curveRes[n], childStems,
+                       startRad, endRad, len(cu.splines) - 1, 0, p.quat)
+        if (n == 1) and (p.offset == 1):
+            nstem.isFirstTip = True
+        addstem(nstem)
 
         bone = roundBone(p.parBone, boneStep[n-1])
         if p.offset == 1:
@@ -1221,13 +1235,17 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 
                 if k == 0:
                     numSplit = 0
-                elif (n == 0) and (k < ((curveRes[n]-1) * splitHeight)) and (k != 1):
+                elif (n == 0) and (k <= ((curveRes[n]) * splitHeight)) and (k != 1):
                     numSplit = 0
                 elif (k == 1) and (n == 0):
                     numSplit = baseSplits
                 elif (n == 0) and (k == int((curveRes[n]-1) * splitHeight) + 1) and (splitVal > 0): #allways split at splitHeight
                     numSplit = 1
                 else:
+                    # expiremental not for distribution
+                    #if hasattr(spl, 'isFirstTip'):
+                    #    numSplit = splits2(segSplits[0])
+                    #elif
                     if (n >= 1) and splitByLen:
                         L = ((spl.segL * curveRes[n]) / scaleVal)
                         lf = 1
@@ -1544,8 +1562,8 @@ def addTree(props):
     cu = bpy.data.curves.new('tree', 'CURVE')
     treeOb = bpy.data.objects.new('tree', cu)
     bpy.context.scene.objects.link(treeOb)
-    
-    treeOb.location=bpy.context.scene.cursor_location
+    if not useArm:
+        treeOb.location=bpy.context.scene.cursor_location
 
     cu.dimensions = '3D'
     cu.fill_mode = 'FULL'
@@ -1773,23 +1791,26 @@ def addTree(props):
     issplit = [s[2] if len(s) > 2 else False for s in splineToBone1]
     splitPidx = [s[3] if len(s) > 2 else 0 for s in splineToBone1]
     
+    # add mesh object
+    treeObj = None
+    if makeMesh:
+        treeMesh = bpy.data.meshes.new('treemesh')
+        treeObj = bpy.data.objects.new('treemesh', treeMesh)
+        bpy.context.scene.objects.link(treeObj)
+        if not useArm:
+            treeObj.location=bpy.context.scene.cursor_location
+    
     # If we need an armature we add it
     if useArm:
         # Create the armature and objects
-        create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
-                        treeOb, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm, armLevels, makeMesh, boneStep)
+        armOb = create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSize, leaves, levelCount, splineToBone,
+                        treeOb, treeObj, wind, gust, gustF, af1, af2, af3, leafAnim, loopFrames, previewArm, armLevels, makeMesh, boneStep)
     
     #print(time.time()-startTime)
-    
 
     #mesh branches
     if makeMesh:
         t1 = time.time()
-
-        treeMesh = bpy.data.meshes.new('treemesh')
-        treeObj = bpy.data.objects.new('treemesh', treeMesh)
-        bpy.context.scene.objects.link(treeObj)
-        treeObj.location=bpy.context.scene.cursor_location
 
         treeVerts = []
         treeEdges = []
@@ -1836,16 +1857,6 @@ def addTree(props):
                 treeVerts.append(p1.co)
                 root_vert.append(True)
                 vert_radius.append((p1.radius, p1.radius))
-            
-#            #add extra vertex for splits
-#            if issplit[i]:
-#                p2 = points[1]
-#                p = evalBez(p1.co, p1.handle_right, p2.handle_left, p2.co, .001)
-#                treeVerts.append(p)
-#                root_vert.append(False)
-#                vert_radius.append((p1.radius, p1.radius)) #(p1.radius * .95, p1.radius * .95)
-#                treeEdges.append([vindex,vindex+1])
-#                vindex += 1
 
             #dont make vertex group if above armLevels
             if (i >= levelCount[armLevels]):
@@ -1907,12 +1918,11 @@ def addTree(props):
         if useArm:
             armMod = treeObj.modifiers.new('windSway', 'ARMATURE')
             if previewArm:
-                bpy.data.objects['treeArm'].hide = True
-                bpy.data.armatures['tree'].draw_type = 'STICK'
-            armMod.object = bpy.data.objects['treeArm']
+                armOb.hide = True
+                armOb.data.draw_type = 'STICK'
+            armMod.object = armOb
             armMod.use_bone_envelopes = False
             armMod.use_vertex_groups = True
-            treeObj.parent = bpy.data.objects['treeArm']
 
         #add skin modifier and set data
         skinMod = treeObj.modifiers.new('Skin', 'SKIN')
