@@ -526,7 +526,7 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
     
     #To Do: #palmate should not use quat for leveling
     
-    if leafType == '0':
+    if leafType in ['0', '5']:
         oldRot += radians(137.5)
     elif leafType == '1':
         if ln % 2:
@@ -547,7 +547,7 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
     
     # reduce downAngle if leaf is at branch tip
     if (offset == 1):
-        if leafType in ['0', '1', '2']:
+        if leafType in ['0', '1', '2', '5']:
             downAngle = downAngle * .67
         elif leafType == '3':
             if (leaves / 2) == (leaves // 2):
@@ -579,30 +579,26 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
         leafScale = leafScale * .1
     
     #Rotate leaf vector
-    v = zAxis.copy()
-    
-    #try using matrix or quaternion and slerp
-    #v = Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-    #v = Quaternion([1, 0, 0, 0])
+    m = Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         
     if leafType in ['2', '3']:
-        v.rotate(Euler((0, 0, radians(90))))
+        m.rotate(Euler((0, 0, radians(90))))
         if oldRot > 0:
-            v.rotate(Euler((0, 0, radians(180))))
-
-    #if (leaves > 0) and (rotate > 0) and horzLeaves:
-    #    nRotMat = Matrix.Rotation(-oldRot + rotate, 3, 'Z')
-    #    v.rotate(nRotMat)
+            m.rotate(Euler((0, 0, radians(180))))
 
     if leafType != '4':
-        v.rotate(downRotMat)
+        m.rotate(downRotMat)
 
-    v.rotate(rotMat)
-    v.rotate(quat)
-
-    vquat = v.to_track_quat('Z', 'Y')
+    m.rotate(rotMat)
+    m.rotate(quat)
     
-    #vquat = v#.to_quaternion()
+    # convert rotation for upward facing leaves
+    if leafType in ['4', '5']:
+        lRot = m
+    else:
+        v = zAxis.copy()
+        v.rotate(m)
+        lRot = v.to_track_quat('Z', 'Y')
 
     # For each of the verts we now rotate and scale them, then append them to the list to be added to the mesh
     for v in verts:
@@ -621,7 +617,7 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
         #leafangle
         v.rotate(Matrix.Rotation(radians(-leafangle), 3, 'X'))
         
-        v.rotate(vquat)
+        v.rotate(lRot)
     
     if leafShape == 'dVert':
         normal = verts[0]

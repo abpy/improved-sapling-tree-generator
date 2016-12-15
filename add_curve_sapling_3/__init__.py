@@ -83,7 +83,8 @@ leaftypes = [('0', 'Rotated Alternate', 'leaves rotate around the stem and face 
              ('1', 'Rotated Opposite', 'pairs of leaves rotate around the stem and face upwards'),
              ('2', 'Alternate', 'leaves sprout alternately from each side of the stem, uses rotate angle'),
              ('3', 'Opposite', 'pairs of leaves sprout from opposite sides of stem, uses rotate angle'),
-             ('4', 'Palmately Compound', 'multiple leaves radiating from stem tip, uses rotate angle for spread angle')]
+             ('4', 'Palmately Compound', 'multiple leaves radiating from stem tip, uses rotate angle for spread angle'),
+             ('5', 'Radial', 'leaves rotate around the stem (for needles)')]
 
 axes = [(("+0"), "X", ""),
         (("+1"), "Y", ""),
