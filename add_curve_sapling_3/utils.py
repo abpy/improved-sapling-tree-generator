@@ -524,8 +524,6 @@ def genLeafMesh(leafScale, leafScaleX, leafScaleT, leafScaleV, loc, quat, offset
     facesList = []
     normal = Vector((0, 0, 1))
     
-    #To Do: #palmate should not use quat for leveling
-    
     if leafType in ['0', '5']:
         oldRot += radians(137.5)
     elif leafType == '1':
