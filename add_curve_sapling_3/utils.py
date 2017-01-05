@@ -55,8 +55,8 @@ class stemSpline:
         self.offsetLen = ofst
         self.patentQuat = pquat
         
-        self.curvSignx = 1
-        self.curvSigny = 1
+        self.curvSignx = choice([1, -1])
+        self.curvSigny = choice([1, -1])
         
     # This method determines the quaternion of the end of the spline
     def quat(self):
