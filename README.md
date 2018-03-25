@@ -65,6 +65,14 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
 * New default tree with better starting settings
 * added operator to generate multiple trees
 
+* (3/25/18) 3 commits
+  * Unicode fix
+  * Down angle now works to set the trunk angle
+  * Automatically save backup of previous settings
+
+In case of exiting or crash a preset is saved. To recover the previous tree this must be loaded immediately or it will be overwritten
+
+
 ###### New features
 * Branch distribution to adjust how the first level is distributed along the height of the tree
 * Option to grow branches in rings, like pine trees
