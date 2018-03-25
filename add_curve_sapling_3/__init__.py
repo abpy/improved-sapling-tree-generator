@@ -50,6 +50,7 @@ from bpy.props import *
 from add_curve_sapling_3.utils import *
 
 useSet = False
+is_first = False
 
 shapeList = [('0', 'Conical (0)', 'Shape = 0'),
             ('1', 'Spherical (1)', 'Shape = 1'),
@@ -912,7 +913,7 @@ class AddTree(bpy.types.Operator):
 
     def execute(self, context):
         # Ensure the use of the global variables
-        global settings, useSet
+        global settings, useSet, is_first
         start_time = time.time()
         # If we need to set the properties from a preset then do it here
         if useSet:
@@ -926,13 +927,34 @@ class AddTree(bpy.types.Operator):
             addTree(self)
             #cProfile.runctx("addTree(self)", globals(), locals())
             print("Tree creation in %0.1fs" %(time.time()-start_time))
+            
+            #backup most recent setengs in case of exit
+            if not is_first:
+                # Here we create a dict of all the properties.
+                data = []
+                for a, b in (self.as_keywords(ignore=("chooseSet", "presetName", "limitImport", "do_update", "overwrite", "leafDupliObj"))).items():
+                    # If the property is a vector property then add the slice to the list
+                    try:
+                        len(b)
+                        data.append((a, b[:]))
+                    # Otherwise, it is fine so just add it
+                    except:
+                        data.append((a, b))
+                # Create the dict from the list
+                data = dict(data)
+
+                #then save
+                bpy.ops.sapling.exportdata("INVOKE_DEFAULT", data = repr([repr(data), "PreviousSettings", True]))
+            
+            is_first = False
+            
             return {'FINISHED'}
         else:
             return {'PASS_THROUGH'}
     
     def invoke(self, context, event):
-#        global settings, useSet
-#        useSet = True
+        global is_first
+        is_first = True
         bpy.ops.sapling.importdata(filename = "Default Tree.py")
         return self.execute(context)
 
