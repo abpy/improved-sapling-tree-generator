@@ -908,14 +908,23 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
     return armOb
 
 
-def kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU, scale0, scaleV0,
-                    scaleVal, taper, minRadius, rootFlare):
+def kickstart_trunk(addstem, levels, leaves, branches, cu, downAngle, downAngleV, curve, curveRes, curveV, attractUp, length, lengthV,
+                    ratio, ratioPower, resU, scale0, scaleV0, scaleVal, taper, minRadius, rootFlare):
     newSpline = cu.splines.new('BEZIER')
     cu.resolution_u = resU
     newPoint = newSpline.bezier_points[-1]
     newPoint.co = Vector((0, 0, 0))
-    newPoint.handle_right = Vector((0, 0, 1))
-    newPoint.handle_left = Vector((0, 0, -1))
+    
+    #start trunk rotation with downAngle
+    tempPos = zAxis.copy()
+    downAng = downAngle[0] - .5 * pi
+    downAng = downAng + uniform(-downAngleV[0], downAngleV[0])
+    downRot = Matrix.Rotation(downAng, 3, 'X')
+    tempPos.rotate(downRot)
+    handle = tempPos
+    newPoint.handle_right = handle
+    newPoint.handle_left = -handle
+    
     branchL = scaleVal * length[0]
     curveVal = curve[0] / curveRes[0]
     #curveVal = curveVal * (branchL / scaleVal)
@@ -970,17 +979,33 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                     oldRotate += rotate[n]
                 bRotate = oldRotate + uniform(-rotateV[n], rotateV[n])
                 
+                #find center of split branches
+                #average
+                cx = sum([a.co[0] for a in p]) / len(p)
+                cy = sum([a.co[1] for a in p]) / len(p)
+                #center of range
+                #xc = [a.co[0] for a in p]
+                #yc = [a.co[1] for a in p]
+                #cx = (max(xc) + min(xc)) / 2
+                #cy = (max(yc) + min(yc)) / 2
+                
+                center = Vector((cx, cy, 0))
+                center2 = Vector((-cx, cy))
+                    
                 #choose start point whose angle is closest to the rotate angle
                 a1 = bRotate % tau
                 a_diff = []
                 for a in p:
-                    a2 = atan2(a.co[0], -a.co[1])
+                    a = a.co
+                    a = a - center
+                    a2 = atan2(a[0], -a[1])
                     d = min((a1-a2+tau)%tau, (a2-a1+tau)%tau)
                     a_diff.append(d)
 
                 idx = a_diff.index(min(a_diff))
                 
-                #find actual rotate angle from branch location
+                #find branch end point
+                
                 br = p[idx]
                 b = br.co
                 vx = sin(bRotate)
@@ -988,6 +1013,8 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                 v = Vector((vx, vy))
                 
                 bD = ((b[0] * b[0] + b[1] * b[1]) ** .5)
+                
+                #acount for length
                 bL = br.lengthPar * length[1] * shapeRatio(shape, (1 - br.offset) / (1 - baseSize), custom=customShape)
                 
                 #account for down angle
@@ -999,11 +1026,12 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
                     downA = sin(downA) ** 2
                     bL *= downA
                 
-                bL *= 0.33
-                v *= (bD + bL)
+                bL *= 0.33 #adjustment constant value
+                v *= (bD + bL) #branch end point
                 
+                #find actual rotate angle from branch location
                 bv = Vector((b[0], -b[1]))
-                cv = v - bv
+                cv = v - bv - center2
                 a = atan2(cv[0], cv[1])
                     
                 childP.append(p[idx])
@@ -1291,12 +1319,13 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 tVals = findChildPoints2(st.children)
             elif (n == 0) and (rMode == 'distance'):
                 tVals = findChildPoints3(splineList, st.children)
-            elif (n == levels - 1) and leafType in ['1', '3']: #oppositely attached leaves
+            elif (n == levels - 1) and (leafType in ['1', '3']):
                 tVal = findChildPoints(splineList, st.children // 2)
                 tVals = []
                 for t in tVal[:-1]:
                     tVals.extend([t, t])
                 if (leaves / 2) == (leaves // 2):
+                    # put two leaves at branch tip if leaves is even
                     tVals.extend([1, 1])
                 else:
                     tVals.append(1)
@@ -1627,8 +1656,8 @@ def addTree(props):
         
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
-            kickstart_trunk(addstem, levels, leaves, branches, cu, curve, curveRes, curveV, attractUp, length, lengthV, ratio, ratioPower, resU,
-                            scale0, scaleV0, scaleVal, taper, minRadius, rootFlare)
+            kickstart_trunk(addstem, levels, leaves, branches, cu, downAngle, downAngleV, curve, curveRes, curveV, attractUp,
+                            length,lengthV,ratio, ratioPower, resU, scale0, scaleV0, scaleVal, taper, minRadius, rootFlare)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:
             # For each of the points defined in the list of stem starting points we need to grow a stem.
