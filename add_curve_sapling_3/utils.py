@@ -283,7 +283,7 @@ def convertQuat(quat):
 
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown, boneStep, rotate, rotateV):
+def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown, boneStep, rotate, rotateV, matIndex):
     
     #curv at base
     sCurv = stem.curv
@@ -367,6 +367,7 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             bScale = min(lenV * tf, 1)
             
             newSpline = cu.splines.new('BEZIER')
+            newSpline.material_index = matIndex[n]
             newPoint = newSpline.bezier_points[-1]
             (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (stem.p.co, 'VECTOR', 'VECTOR')
             newPoint.radius = (stem.radS*(1 - stem.seg/stem.segMax) + stem.radE*(stem.seg/stem.segMax)) * bScale
@@ -909,8 +910,9 @@ def create_armature(armAnim, leafP, cu, frameRate, leafMesh, leafObj, leafVertSi
 
 
 def kickstart_trunk(addstem, levels, leaves, branches, cu, downAngle, downAngleV, curve, curveRes, curveV, attractUp, length, lengthV,
-                    ratio, ratioPower, resU, scale0, scaleV0, scaleVal, taper, minRadius, rootFlare):
+                    ratio, ratioPower, resU, scale0, scaleV0, scaleVal, taper, minRadius, rootFlare, matIndex):
     newSpline = cu.splines.new('BEZIER')
+    newSpline.material_index = matIndex[0]
     cu.resolution_u = resU
     newPoint = newSpline.bezier_points[-1]
     newPoint.co = Vector((0, 0, 0))
@@ -945,7 +947,7 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, downAngle, downAngleV
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
                     downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV, levels, n, ratioPower, resU,
                     rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
-                    useOldDownAngle, useParentAngle, boneStep):
+                    useOldDownAngle, useParentAngle, boneStep, matIndex):
     
     #prevent baseSize from going to 1.0
     baseSize = min(0.999, baseSize)
@@ -1084,6 +1086,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
     for i, p in enumerate(childP):
         # Add a spline and set the coordinate of the first point.
         newSpline = cu.splines.new('BEZIER')
+        newSpline.material_index = matIndex[n]
         cu.resolution_u = resU
         newPoint = newSpline.bezier_points[-1]
         newPoint.co = p.co
@@ -1192,7 +1195,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                     splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, nrings,
-                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType):
+                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -1284,7 +1287,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     spl.curv += 2 * (curveBack[n] / curveRes[n]) #was -4 * 
                 
                 growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, handles, splineToBone,
-                           closeTip, kp, splitHeight, attractOut[n], stemsegL, lengthV[n], taperCrown, boneStep, rotate, rotateV)
+                           closeTip, kp, splitHeight, attractOut[n], stemsegL, lengthV[n], taperCrown, boneStep, rotate, rotateV, matIndex)
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
@@ -1547,6 +1550,7 @@ def addTree(props):
     makeMesh = props.makeMesh
     armLevels = props.armLevels
     boneStep = props.boneStep
+    matIndex = props.matIndex
     
     useOldDownAngle = props.useOldDownAngle
     useParentAngle = props.useParentAngle
@@ -1595,6 +1599,10 @@ def addTree(props):
     cu.bevel_depth = bevelDepth
     cu.bevel_resolution = bevelRes
     cu.use_uv_as_generated = True
+    
+    #material slots
+    for i in range(max(matIndex)+1):
+        treeOb.data.materials.append(None)
 
     # Fix the scale of the tree now
     scaleVal = scale + uniform(-scaleV, scaleV)
@@ -1657,7 +1665,7 @@ def addTree(props):
         # If this is the first level of growth (the trunk) then we need some special work to begin the tree
         if n == 0:
             kickstart_trunk(addstem, levels, leaves, branches, cu, downAngle, downAngleV, curve, curveRes, curveV, attractUp,
-                            length,lengthV,ratio, ratioPower, resU, scale0, scaleV0, scaleVal, taper, minRadius, rootFlare)
+                            length,lengthV,ratio, ratioPower, resU, scale0, scaleV0, scaleVal, taper, minRadius, rootFlare, matIndex)
         # If this isn't the trunk then we may have multiple stem to intialise
         else:
             # For each of the points defined in the list of stem starting points we need to grow a stem.
@@ -1665,7 +1673,7 @@ def addTree(props):
                             curveRes, curveV, attractUp, downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV,
                             levels, n, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
                             taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
-                            useOldDownAngle, useParentAngle, boneStep)
+                            useOldDownAngle, useParentAngle, boneStep, matIndex)
         
         #change base size for each level
         if n > 0:
@@ -1704,7 +1712,7 @@ def addTree(props):
                                                   pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, 
                                                   branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight,
-                                                  attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType)
+                                                  attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex)
 
         levelCount.append(len(cu.splines))
     
@@ -1843,6 +1851,12 @@ def addTree(props):
         vert_radius = []
         vertexGroups = OrderedDict()
         lastVerts = []
+        
+        #vertex group for each level
+        levelGroups = []
+        for n in range(levels):
+            treeObj.vertex_groups.new("Branching Level " + str(n))
+            levelGroups.append([])
 
         for i, curve in enumerate(cu.splines):
             points = curve.bezier_points
@@ -1909,6 +1923,7 @@ def addTree(props):
                         vertexGroups[groupName].append(vindex - 1)
                     else:
                         vertexGroups[splineToBone[i]].append(vindex - 1)
+                    levelGroups[level].append(vindex - 1)
 
                 for f in range(1, resU+1):
                     pos = f / resU
@@ -1925,19 +1940,25 @@ def addTree(props):
                         edge = [n * resU + f + vindex - 1, n * resU + f + vindex]
                         #add vert to group
                         vertexGroups[groupName].append(n * resU + f + vindex - 1)
+                        levelGroups[level].append(n * resU + f + vindex - 1)
                     treeEdges.append(edge)
                     
                 vertexGroups[groupName].append(n * resU + resU + vindex)
+                levelGroups[level].append(n * resU + resU + vindex)
 
                 p1 = p2
                 
             lastVerts.append(len(treeVerts)-1)
 
         treeMesh.from_pydata(treeVerts, treeEdges, ())
-
-        for group in vertexGroups:
-            treeObj.vertex_groups.new(group)
-            treeObj.vertex_groups[group].add(vertexGroups[group], 1.0, 'ADD')
+        
+        if useArm:
+            for group in vertexGroups:
+                treeObj.vertex_groups.new(group)
+                treeObj.vertex_groups[group].add(vertexGroups[group], 1.0, 'ADD')
+        
+        for i, g in enumerate(levelGroups):
+            treeObj.vertex_groups["Branching Level " + str(i)].add(g, 1.0, 'ADD')
 
         #add armature
         if useArm:

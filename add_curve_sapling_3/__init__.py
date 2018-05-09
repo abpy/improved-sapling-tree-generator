@@ -665,6 +665,12 @@ class AddTree(bpy.types.Operator):
         min=1,
         default=[1, 1, 1, 1],
         size=4, update=update_tree)
+    matIndex = IntVectorProperty(name='Material Index',
+        description='Material index for each split level (curves only)',
+        min=0,
+        max=3,
+        default=[0, 0, 0, 0],
+        size=4, update=update_tree)
 
     presetName = StringProperty(name='Preset Name',
         description='The name of the preset to be saved',
@@ -690,7 +696,9 @@ class AddTree(bpy.types.Operator):
         if self.chooseSet == '0':
             box = layout.box()
             box.label("Geometry:")
-            box.prop(self, 'bevel')
+            row = box.row()
+            row.prop(self, 'bevel')
+            row.prop(self, 'makeMesh')
             
             row = box.row()
             row.prop(self, 'bevelRes')
@@ -705,6 +713,10 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'shapeS')
             box.prop(self, 'branchDist')
             box.prop(self, 'nrings')
+            
+            row = box.row()
+            row.prop(self, 'matIndex')
+            
             box.label("")
             box.prop(self, 'seed')
             
