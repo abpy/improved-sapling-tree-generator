@@ -283,7 +283,7 @@ def convertQuat(quat):
 
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown, boneStep, rotate, rotateV, matIndex):
+def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, splitRadiusRatio, minRadius, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown, boneStep, rotate, rotateV, matIndex):
     
     #curv at base
     sCurv = stem.curv
@@ -337,6 +337,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
 #        
 #        d3 = Vector((x, y, z))
 #        dir = d3.to_track_quat('Z', 'Y')
+
+    #split radius factor
+    splitR = splitRadiusRatio #0.707 #sqrt(1/(numSplit+1))
     
     # If the stem splits, we need to add new splines etc
     if numSplit > 0:
@@ -370,7 +373,7 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             newSpline.material_index = matIndex[n]
             newPoint = newSpline.bezier_points[-1]
             (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (stem.p.co, 'VECTOR', 'VECTOR')
-            newPoint.radius = (stem.radS*(1 - stem.seg/stem.segMax) + stem.radE*(stem.seg/stem.segMax)) * bScale
+            newPoint.radius = (stem.radS*(1 - stem.seg/stem.segMax) + stem.radE*(stem.seg/stem.segMax)) * bScale * splitR
             # Here we make the new "sprouting" stems diverge from the current direction
             divRotMat = Matrix.Rotation(angle + curveangle, 3, 'X')
             dirVec = zAxis.copy()
@@ -416,14 +419,20 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             newSpline.bezier_points.add()
             newPoint = newSpline.bezier_points[-1]
             (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (end_co + dirVec, hType, hType)
-            newPoint.radius = (stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)) * bScale
+            
+            newRadius = (stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)) * bScale * splitR
+            newRadius = max(newRadius, minRadius)
+            nRadS = max(stem.radS * bScale * splitR, minRadius)
+            nRadE = max(stem.radE * bScale * splitR, minRadius)
             if (stem.seg == stem.segMax-1) and closeTip:
-                newPoint.radius = 0.0
+                newRadius = 0.0
+            newPoint.radius = newRadius
+            
             # If this isn't the last point on a stem, then we need to add it to the list of stems to continue growing
             #print(stem.seg != stem.segMax, stem.seg, stem.segMax)
             #if stem.seg != stem.segMax: # if probs not nessesary
             nstem = stemSpline(newSpline, stem.curv, stem.curvV, stem.vertAtt, stem.seg+1, stem.segMax, stemL, stem.children,
-                               stem.radS * bScale, stem.radE * bScale, len(cu.splines)-1, ofst, stem.quat())
+                               nRadS, nRadE, len(cu.splines)-1, ofst, stem.quat())
             nstem.splitlast = 1#numSplit #keep track of numSplit for next stem
             nstem.rLast = branchRot + pi
             if hasattr(stem, 'isFirstTip'):
@@ -482,10 +491,16 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     stem.spline.bezier_points.add()
     newPoint = stem.spline.bezier_points[-1]
     (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (end_co, hType, hType)
-    newPoint.radius = stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)
     
+    newRadius = stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)
+    if numSplit > 0:
+        newRadius = max(newRadius * splitR, minRadius)
+        stem.radS = max(stem.radS * splitR, minRadius)
+        stem.radE = max(stem.radE * splitR, minRadius)
     if (stem.seg == stem.segMax-1) and closeTip:
-        newPoint.radius = 0.0
+        newRadius = 0.0
+    newPoint.radius = newRadius
+    
     # Set bezier handles for first point.
     if len(stem.spline.bezier_points) == 2:
         tempPoint = stem.spline.bezier_points[0]
@@ -1194,7 +1209,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     deleteSpline, forceSprout, handles, n, levels, branches, oldMax, orginalSplineToBone, originalCo, originalCurv,
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
-                    splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, nrings,
+                    splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, splitRadiusRatio, minRadius, nrings,
                     splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
@@ -1287,7 +1302,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     spl.curv += 2 * (curveBack[n] / curveRes[n]) #was -4 * 
                 
                 growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, handles, splineToBone,
-                           closeTip, kp, splitHeight, attractOut[n], stemsegL, lengthV[n], taperCrown, boneStep, rotate, rotateV, matIndex)
+                           closeTip, splitRadiusRatio, minRadius, kp, splitHeight, attractOut[n], stemsegL, lengthV[n], taperCrown, boneStep, rotate, rotateV, matIndex)
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
@@ -1490,6 +1505,7 @@ def addTree(props):
     minRadius = props.minRadius
     closeTip = props.closeTip
     rootFlare = props.rootFlare
+    splitRadiusRatio = props.splitRadiusRatio
     autoTaper = props.autoTaper
     taper = props.taper#
     noTip = props.noTip
@@ -1711,7 +1727,7 @@ def addTree(props):
                                                   originalSeg, prune, prunePowerHigh, prunePowerLow, pruneRatio,
                                                   pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, 
-                                                  branchDist, length, splitByLen, closeTipp, nrings, splitBias, splitHeight,
+                                                  branchDist, length, splitByLen, closeTipp, splitRadiusRatio, minRadius, nrings, splitBias, splitHeight,
                                                   attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex)
 
         levelCount.append(len(cu.splines))

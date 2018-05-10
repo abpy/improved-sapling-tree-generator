@@ -455,6 +455,11 @@ class AddTree(bpy.types.Operator):
         description='Root radius factor',
         min=1.0,
         default=1.0, update=update_tree)
+    splitRadiusRatio = FloatProperty(name='Split Radius Ratio',
+        description='Reduce radius after branch splits',
+        min=0.0,
+        max=1.0,
+        default=0.75, update=update_tree)
     autoTaper = BoolProperty(name='Auto Taper',
         description='Calculate taper automaticly based on branch lengths',
         default=True, update=update_tree)
@@ -760,18 +765,23 @@ class AddTree(bpy.types.Operator):
             row.prop(self, 'bevelRes')
             
             box.prop(self, 'ratio')
-            row = box.row()
-            row.prop(self, 'scale0')
-            row.prop(self, 'scaleV0')
-            box.prop(self, 'ratioPower')
             
             box.prop(self, 'minRadius')
             box.prop(self, 'closeTip')
             box.prop(self, 'rootFlare')
+            box.prop(self, 'splitRadiusRatio')
+            
+            box.label("")
+            box.label("Other:")
             
             row = box.row()
             row.prop(self, 'autoTaper')
             row.prop(self, 'noTip')
+            
+            row = box.row()
+            row.prop(self, 'scale0')
+            row.prop(self, 'scaleV0')
+            box.prop(self, 'ratioPower')
             
             split = box.split()
             col = split.column()
