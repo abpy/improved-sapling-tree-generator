@@ -366,7 +366,7 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
         # Now for each split add the new spline and adjust the growth direction
         for i in range(numSplit):
             #find split scale
-            lenV = uniform(1 - lenVar, 1 + lenVar)
+            lenV = uniform(1 - lenVar, 1) # length variation for split branches #only reduce length
             bScale = min(lenV * tf, 1)
             
             newSpline = cu.splines.new('BEZIER')
@@ -406,11 +406,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             dirVec.normalize()
             
             #split length variation
-            stemL = stemsegL * lenV
+            stemL = stem.segL * lenV # was stemsegL, now relative to direct parent branch
             dirVec *= stemL * tf
             ofst = stem.offsetLen + (stem.segL * (len(stem.spline.bezier_points) - 1))
-            
-            ##dirVec *= stem.segL
             
             # Get the end point position
             end_co = stem.p.co.copy()
@@ -1238,14 +1236,16 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
             st.p = newPoint
             newPoint.radius = st.radS
             splineToBone = orginalSplineToBone
-
-        # Initialise the spline list for those contained in the current level of branching
-        splineList = [st]
+        
+        # Grow the tree branch
         
         #split length variation
-        stemsegL = splineList[0].segL #initial segment length used for variation
-        splineList[0].segL = stemsegL * uniform(1 - lengthV[n], 1 + lengthV[n]) #variation for first stem
-        
+        stemsegL = st.segL #initial segment length used for variation of each split stem
+        if (n != 0):
+            st.segL = stemsegL * uniform(1 - lengthV[n], 1 + lengthV[n]) #variation for main stem
+
+        # Initialise the spline list of split stems in the current branch
+        splineList = [st]
         # For each of the segments of the stem which must be grown we have to add to each spline in splineList
         for k in range(curveRes[n]):
             # Make a copy of the current list to avoid continually adding to the list we're iterating over

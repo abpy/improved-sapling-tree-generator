@@ -20,7 +20,7 @@
 
 bl_info = {
     "name": "Sapling_3",
-    "author": "Andrew Hale (TrumanBlending), modified by Aaron Buchler in 2015",
+    "author": "Andrew Hale (TrumanBlending), modified by Aaron Buchler 2015-2018",
     "version": (0, 3, 3),
     "blender": (2, 64, 0),
     "location": "View3D > Add > Curve",
@@ -172,7 +172,7 @@ class ImportData(bpy.types.Operator):
 
     def execute(self, context):
         # Make sure the operator knows about the global variables
-        global settings, useSet
+        global settings, useSet, is_first
         # Read the preset data into the global settings
         try:
             f = open(os.path.join(getPresetpaths()[0], self.filename), 'r')
@@ -213,6 +213,7 @@ class ImportData(bpy.types.Operator):
             
         # Set the flag to use the settings
         useSet = True
+        is_first = True
         return {'FINISHED'}
 
 
@@ -318,7 +319,7 @@ class AddTree(bpy.types.Operator):
         default=[1, 0.3, 0.6, 0.45],
         size=4, update=update_tree)
     lengthV = FloatVectorProperty(name='Length Variation',
-        description='The relative length variations of each level',
+        description='Branch and split length variations for each level',
         min=0.0,
         max=1.0,
         default=[0, 0, 0, 0],
@@ -543,7 +544,7 @@ class AddTree(bpy.types.Operator):
     leafType = EnumProperty(name='Leaf Type',
         description='Type of leaf arrangment',
         items=leaftypes[::-1],
-        default='0', update=update_leaves)
+        default='0', update=update_leaves) #update_leaves update_tree
     
     leafDownAngle = FloatProperty(name='Leaf Down Angle',
         description='The angle between a new leaf and the branch it grew from',
