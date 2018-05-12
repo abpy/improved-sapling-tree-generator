@@ -1332,9 +1332,6 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 currentMin = 1
         
         # If the search will halt on the next iteration then we need to make sure we sprout child points to grow the next splines or leaves
-        
-        oppositeBranches = False #expiremental #should have user option
-        
         if (((currentMax - currentMin) < 0.005) or not prune) or forceSprout:
             if (n == 0) and (rMode in ['rotate', 'random']):
                 tVals = findChildPoints2(st.children)
@@ -1350,16 +1347,6 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     tVals.extend([1, 1])
                 else:
                     tVals.append(1)
-#            elif (n > 0) and oppositeBranches and leafType in ['1', '3']: # oppositely attached leaves and branches
-#                tVal = findChildPoints(splineList, st.children // 2)
-#                tVals = []
-#                for t in tVal[:-1]:
-#                    tVals.extend([t, t])
-#                if (n == levels - 1) and ((leaves / 2) == (leaves // 2)):
-#                    # put two leaves at branch tip if leaves is even
-#                    tVals.extend([1, 1])
-#                else:
-#                    tVals.append(1)
             else:
                 tVals = findChildPoints(splineList, st.children)
             
