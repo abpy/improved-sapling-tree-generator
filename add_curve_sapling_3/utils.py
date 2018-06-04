@@ -958,7 +958,7 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, downAngle, downAngleV
 
 
 def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack, curveRes, curveV, attractUp,
-                    downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV, levels, n, ratioPower, resU,
+                    downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV, levels, n, ratio, ratioPower, resU,
                     rotate, rotateV, scaleVal, shape, storeN, taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
                     useOldDownAngle, useParentAngle, boneStep, matIndex):
     
@@ -1170,7 +1170,8 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
 
         # Determine the starting and ending radii of the stem using the tapering of the stem
-        startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
+        #startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
+        startRad = min(((ratio * branchL) ** ratioPower) * radiusTweak[n], p.radiusPar[1])
         if p.offset == 1:
             startRad = p.radiusPar[1]
         endRad = (startRad * (1 - taper[n])) ** ratioPower
@@ -1687,7 +1688,7 @@ def addTree(props):
             # For each of the points defined in the list of stem starting points we need to grow a stem.
             fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, curve, curveBack,
                             curveRes, curveV, attractUp, downAngle, downAngleV, leafDist, leaves, leafType, length, lengthV,
-                            levels, n, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
+                            levels, n, ratio, ratioPower, resU, rotate, rotateV, scaleVal, shape, storeN,
                             taper, shapeS, minRadius, radiusTweak, customShape, rMode, segSplits,
                             useOldDownAngle, useParentAngle, boneStep, matIndex)
         
