@@ -1272,18 +1272,18 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 lastsplit = getattr(spl, 'splitlast', 0)
                 splitVal = splitValue
                 if lastsplit == 0:
-                    splitVal = splitValue * 1.33
+                    splitVal = splitValue ** 0.5# * 1.33
                 elif lastsplit == 1:
                     splitVal = splitValue * splitValue
-                
+
                 if k == 0:
                     numSplit = 0
-                elif (n == 0) and (k <= ((curveRes[n]) * splitHeight)) and (k != 1):
+                elif (n == 0) and (k == int((curveRes[n]) * splitHeight)) and (splitVal > 0): #allways split at splitHeight
+                    numSplit = 1
+                elif (n == 0) and (k < ((curveRes[n]) * splitHeight)) and (k != 1): #splitHeight
                     numSplit = 0
                 elif (k == 1) and (n == 0):
                     numSplit = baseSplits
-                elif (n == 0) and (k == int((curveRes[n]-1) * splitHeight) + 1) and (splitVal > 0): #allways split at splitHeight
-                    numSplit = 1
                 else:
                     # expiremental not for distribution
                     #if hasattr(spl, 'isFirstTip'):
