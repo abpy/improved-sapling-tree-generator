@@ -283,7 +283,8 @@ def convertQuat(quat):
 
 
 # This is the function which extends (or grows) a given stem.
-def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, splineToBone, closeTip, splitRadiusRatio, minRadius, kp, splitHeight, outAtt, stemsegL, lenVar, taperCrown, boneStep, rotate, rotateV, matIndex):
+def growSpline(n, stem, numSplit, splitAng, splitAngV, splitStraight, splineList, hType, splineToBone, closeTip, splitRadiusRatio, minRadius, kp, splitHeight, outAtt,
+               stemsegL, splitLength, lenVar, taperCrown, boneStep, rotate, rotateV, matIndex):
     
     #curv at base
     sCurv = stem.curv
@@ -300,8 +301,8 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
     # First find the current direction of the stem
     dir = stem.quat()
 
-    if n == 0:
-        dir = convertQuat(dir)
+    #if n == 0:
+    #    dir = convertQuat(dir)
     
     #length taperCrown
     if n == 0:
@@ -313,13 +314,26 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
         tf = 1.0
     
     #outward attraction
-    if (n > 0) and (kp > 0) and (outAtt > 0):
+    if (n >= 0) and (kp > 0) and (outAtt > 0):
         p = stem.p.co.copy()
-        d = atan2(p[0], -p[1]) + tau
+        d = atan2(p[0], -p[1])# + tau
         edir = dir.to_euler('XYZ', Euler((0, 0, d), 'XYZ'))
         d = anglemean(edir[2], d, (kp * outAtt))
         dirv = Euler((edir[0], edir[1], d), 'XYZ')
         dir = dirv.to_quaternion()
+        
+#        vec = zAxis.copy()
+#        vec.rotate(dir)
+#        d1 = atan2(vec[0], -vec[1])
+#        d2 = anglemean(d1, d, (kp * outAtt))
+#        
+#        vl = ((vec[0]*vec[0]) + (vec[1]*vec[1])) ** 0.5
+#        nVec = Vector((0, -vl, vec[2]))
+#        nVec.rotate(Matrix.Rotation(d1, 3, 'Z'))
+#        dir = vec.to_track_quat('Z', 'Y') #nVec
+    
+    if n == 0:
+        dir = convertQuat(dir)
         
     #parent weight
 #    parWeight = kp * degrees(stem.curvV) * pi
@@ -348,13 +362,22 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
         cu = bpy.data.curves[cuData]
 
         #calc split angles
-        angle = choice([-1, 1]) * (splitAng + uniform(-splitAngV, splitAngV))
+        if n == 0:
+            angle = (splitAng + uniform(-splitAngV, splitAngV))
+        else:
+            angle = choice([-1, 1]) * (splitAng + uniform(-splitAngV, splitAngV))
         if n > 0:
             #make branches flatter
             angle *= max(1 - declination(dir) / 90, 0) * .67 + .33
         spreadangle = choice([-1, 1]) * (splitAng + uniform(-splitAngV, splitAngV))
         
-        #branchRotMat = Matrix.Rotation(radians(uniform(0, 360)), 3, 'Z')
+        splitLen = 0
+        if n == 0:
+            splitLen = splitLength
+        branchStraightness = 0
+        if n == 0:
+            branchStraightness = splitStraight
+        
         if not hasattr(stem, 'rLast'):
             stem.rLast = radians(uniform(0, 360))
         
@@ -366,7 +389,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
         # Now for each split add the new spline and adjust the growth direction
         for i in range(numSplit):
             #find split scale
-            lenV = uniform(1 - lenVar, 1) # length variation for split branches #only reduce length
+            #lenV = uniform(1 - lenVar, 1) # length variation for split branches #only reduce length #1-lenVar#
+            lenV = (1-splitLen) * uniform(1-lenVar, 1+(splitLen * lenVar))
+            lenV = max(lenV, 0.01)
             bScale = min(lenV * tf, 1)
             
             newSpline = cu.splines.new('BEZIER')
@@ -375,7 +400,7 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (stem.p.co, 'VECTOR', 'VECTOR')
             newPoint.radius = (stem.radS*(1 - stem.seg/stem.segMax) + stem.radE*(stem.seg/stem.segMax)) * bScale * splitR
             # Here we make the new "sprouting" stems diverge from the current direction
-            divRotMat = Matrix.Rotation(angle + curveangle, 3, 'X')
+            divRotMat = Matrix.Rotation(angle * (1+branchStraightness) + curveangle, 3, 'X')
             dirVec = zAxis.copy()
             dirVec.rotate(divRotMat)
             
@@ -388,9 +413,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
                 ang = pi - ((tau) / (numSplit + 1)) * (i+1)
                 dirVec.rotate(Matrix.Rotation(ang, 3, 'Z'))
 
-            # Spread the stem out in a random fashion
-            spreadMat = Matrix.Rotation(spreadangle, 3, 'Y')
+            # Spread the stem out horizontally
             if n != 0: #Special case for trunk splits
+                spreadMat = Matrix.Rotation(spreadangle, 3, 'Y')
                 dirVec.rotate(spreadMat)
             
             dirVec.rotate(dir)
@@ -441,7 +466,7 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             splineToBone.append((bone, False, True, len(stem.spline.bezier_points)-2))
                 
         # The original spline also needs to keep growing so adjust its direction too
-        divRotMat = Matrix.Rotation(-angle + curveangle, 3, 'X')
+        divRotMat = Matrix.Rotation(-angle * (1-branchStraightness) + curveangle, 3, 'X')
         dirVec = zAxis.copy()
         dirVec.rotate(divRotMat)
         
@@ -452,8 +477,8 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splineList, hType, spline
             dirVec.rotate(branchRotMat)
         
         #spread
-        spreadMat = Matrix.Rotation(-spreadangle, 3, 'Y')
         if n != 0: #Special case for trunk splits
+            spreadMat = Matrix.Rotation(-spreadangle, 3, 'Y')
             dirVec.rotate(spreadMat)
         
         dirVec.rotate(dir)
@@ -1209,7 +1234,7 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                     originalCurvV, originalHandleL, originalHandleR, originalLength, originalSeg, prune, prunePowerHigh,
                     prunePowerLow, pruneRatio, pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                     splineToBone, splitAngle, splitAngleV, st, startPrune, branchDist, length, splitByLen, closeTip, splitRadiusRatio, minRadius, nrings,
-                    splitBias, splitHeight, attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex):
+                    splitBias, splitHeight, attractOut, rMode, splitStraight, splitLength, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex):
     while startPrune and ((currentMax - currentMin) > 0.005):
         setstate(randState)
 
@@ -1278,18 +1303,18 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
 
                 if k == 0:
                     numSplit = 0
+                elif (k == 1) and (n == 0):
+                    numSplit = baseSplits
                 elif (n == 0) and (k == int((curveRes[n]) * splitHeight)) and (splitVal > 0): #allways split at splitHeight
                     numSplit = 1
                 elif (n == 0) and (k < ((curveRes[n]) * splitHeight)) and (k != 1): #splitHeight
                     numSplit = 0
-                elif (k == 1) and (n == 0):
-                    numSplit = baseSplits
                 else:
                     # expiremental not for distribution
                     #if hasattr(spl, 'isFirstTip'):
                     #    numSplit = splits2(segSplits[0])
                     #elif
-                    if (n >= 1) and splitByLen:
+                    if (n >= 0) and splitByLen:
                         L = ((spl.segL * curveRes[n]) / scaleVal)
                         lf = 1
                         for l in length[:n+1]:
@@ -1302,8 +1327,8 @@ def perform_pruning(baseSize, baseSplits, childP, cu, currentMax, currentMin, cu
                 if (k == int(curveRes[n] / 2 + 0.5)) and (curveBack[n] != 0):
                     spl.curv += 2 * (curveBack[n] / curveRes[n]) #was -4 * 
                 
-                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splineList, handles, splineToBone,
-                           closeTip, splitRadiusRatio, minRadius, kp, splitHeight, attractOut[n], stemsegL, lengthV[n], taperCrown, boneStep, rotate, rotateV, matIndex)
+                growSpline(n, spl, numSplit, splitAngle[n], splitAngleV[n], splitStraight, splineList, handles, splineToBone,
+                           closeTip, splitRadiusRatio, minRadius, kp, splitHeight, attractOut[n], stemsegL, splitLength, lengthV[n], taperCrown, boneStep, rotate, rotateV, matIndex)
 
         # If pruning is enabled then we must to the check to see if the end of the spline is within the evelope
         if prune:
@@ -1486,6 +1511,8 @@ def addTree(props):
     segSplits = props.segSplits#
     splitByLen = props.splitByLen
     rMode = props.rMode
+    splitStraight = props.splitStraight
+    splitLength = props.splitLength
     splitAngle = toRad(props.splitAngle)#
     splitAngleV = toRad(props.splitAngleV)#
     scale = props.scale#
@@ -1729,7 +1756,7 @@ def addTree(props):
                                                   pruneWidth, pruneBase, pruneWidthPeak, randState, ratio, scaleVal, segSplits,
                                                   splineToBone, splitAngle, splitAngleV, st, startPrune, 
                                                   branchDist, length, splitByLen, closeTipp, splitRadiusRatio, minRadius, nrings, splitBias, splitHeight,
-                                                  attractOut, rMode, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex)
+                                                  attractOut, rMode, splitStraight, splitLength, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex)
 
         levelCount.append(len(cu.splines))
     

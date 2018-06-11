@@ -368,6 +368,16 @@ class AddTree(bpy.types.Operator):
         description='Branching and Rotation Mode',
         items=branchmodes,
         default="rotate", update=update_tree)
+    splitStraight = FloatProperty(name="Split Straight",
+        description="Straightness of trunk branch splits",
+        min=0.0,
+        max=1.0,
+        default=0, update=update_tree)
+    splitLength = FloatProperty(name="Split Length",
+        description="Length of trunk branch splits, (similar to length variation but not random)",
+        min=0.0,
+        max=1.0,
+        default=0, update=update_tree)
     splitAngle = FloatVectorProperty(name='Split Angle',
         description='Angle of branch splitting',
         default=[0, 0, 0, 0],
@@ -817,6 +827,8 @@ class AddTree(bpy.types.Operator):
             
             col.label("Branching Mode:")
             col.prop(self, 'rMode')
+            col.prop(self, 'splitStraight')
+            col.prop(self, 'splitLength')
 
             box.column().prop(self, 'curveRes')
 
