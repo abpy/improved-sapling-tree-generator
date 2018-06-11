@@ -72,6 +72,11 @@ Curves can now be converted into a mesh that uses the skin modifier. With the me
   * Down angle now works to set the trunk angle
   * Automatically save backup of previous settings
 
+* (6/10/18) added new options for splitting
+  * control of straightness of splits
+  * setting for length of split branches releative the the parent branch
+  * outward attraction now works on the trunk, (not that it's very usefull, but atleast it does something)
+
 In case of exiting or crash a preset is saved. To recover the previous tree this must be loaded immediately or it will be overwritten
 
 
