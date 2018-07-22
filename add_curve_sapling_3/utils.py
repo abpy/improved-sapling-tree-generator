@@ -242,14 +242,14 @@ def interpStem(stem, tVals, maxOffset, baseSize):
             quat = (evalBezTan(points[index].co, points[index].handle_right, points[index+1].handle_left, points[index+1].co, tTemp)).to_track_quat('Z', 'Y')
             radius = (1-tTemp)*points[index].radius + tTemp*points[index+1].radius # radius at the child point
             
-            tempList.append(childPoint(coord, quat, (stem.radS, radius), t, ofst, stem.segMax * stem.segL, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
+            tempList.append(childPoint(coord, quat, (stem.radS, radius, stem.radE), t, ofst, stem.segMax * stem.segL, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
         elif t == 1:
             #add stems at tip
             index = numSegs-1
             coord = points[-1].co
             quat = (points[-1].handle_right - points[-1].co).to_track_quat('Z', 'Y')
             radius = points[-1].radius
-            tempList.append(childPoint(coord, quat, (stem.radS, radius), 1, 1, stem.segMax * stem.segL, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
+            tempList.append(childPoint(coord, quat, (stem.radS, radius, stem.radE), 1, 1, stem.segMax * stem.segL, 'bone'+(str(stem.splN).rjust(3, '0'))+'.'+(str(index).rjust(3, '0'))))
             
     return tempList
 
@@ -1195,8 +1195,11 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         #print("n=%d, levels=%d, n'=%d, childStems=%s"%(n, levels, storeN, childStems))
 
         # Determine the starting and ending radii of the stem using the tapering of the stem
-        #startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], p.radiusPar[1])
-        startRad = min(((ratio * branchL) ** ratioPower) * radiusTweak[n], p.radiusPar[1])
+        #startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], 10)
+        ratio = (p.radiusPar[0] - p.radiusPar[2]) / p.lengthPar
+        startRad = min(((ratio * branchL) ** ratioPower) * radiusTweak[n], 10)#p.radiusPar[1]
+        #startRad = min((ratio * p.lengthPar * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], 10)#p.radiusPar[1]
+        #p.radiusPar[2] is parent end radius
         if p.offset == 1:
             startRad = p.radiusPar[1]
         endRad = (startRad * (1 - taper[n])) ** ratioPower
