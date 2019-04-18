@@ -468,7 +468,7 @@ class AddTree(bpy.types.Operator):
         default=1.0, update=update_tree)
     splitRadiusRatio = FloatProperty(name='Split Radius Ratio',
         description='Reduce radius after branch splits',
-        min=0.0,
+        min=-1.0,
         max=1.0,
         default=0.75, update=update_tree)
     autoTaper = BoolProperty(name='Auto Taper',
@@ -492,6 +492,7 @@ class AddTree(bpy.types.Operator):
     ratioPower = FloatProperty(name='Radius Ratio Power',
         description='Power which defines the radius of a branch compared to the radius of the branch it grew from',
         min=0.0,
+        soft_min=1.0,
         default=1.2, update=update_tree)
     downAngle = FloatVectorProperty(name='Down Angle',
         description='The angle between a new branch and the one it grew from',

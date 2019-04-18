@@ -25,7 +25,7 @@ import time
 import copy
 
 from mathutils import *
-from math import pi, sin, degrees, radians, atan2, copysign, cos, acos
+from math import pi, sin, degrees, radians, atan2, copysign, cos, acos, sqrt
 from math import floor, ceil
 from random import random, uniform, seed, choice, getstate, setstate, randint
 from bpy.props import *
@@ -355,6 +355,18 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splitStraight, splineList
     #split radius factor
     splitR = splitRadiusRatio #0.707 #sqrt(1/(numSplit+1))
     
+    if splitRadiusRatio == -1:
+        lenV = (1-splitLength)
+        ra = lenV / (lenV + 1)
+        splitR1 = sqrt(ra)
+        splitR2 = sqrt(1-ra)
+    elif splitRadiusRatio == 0:
+        splitR1 = sqrt(0.5)
+        splitR2 = sqrt(1 - (0.5 * (1-splitLength)))
+    else:
+        splitR1 = splitR
+        splitR2 = splitR
+    
     # If the stem splits, we need to add new splines etc
     if numSplit > 0:
         # Get the curve data
@@ -398,7 +410,9 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splitStraight, splineList
             newSpline.material_index = matIndex[n]
             newPoint = newSpline.bezier_points[-1]
             (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (stem.p.co, 'VECTOR', 'VECTOR')
-            newPoint.radius = (stem.radS*(1 - stem.seg/stem.segMax) + stem.radE*(stem.seg/stem.segMax)) * bScale * splitR
+            newRadius = (stem.radS*(1 - stem.seg/stem.segMax) + stem.radE*(stem.seg/stem.segMax)) * bScale * splitR1
+            #newRadius = max(newRadius, stem.radE * bScale)
+            newPoint.radius = newRadius
             # Here we make the new "sprouting" stems diverge from the current direction
             divRotMat = Matrix.Rotation(angle * (1+branchStraightness) + curveangle, 3, 'X')
             dirVec = zAxis.copy()
@@ -443,10 +457,11 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splitStraight, splineList
             newPoint = newSpline.bezier_points[-1]
             (newPoint.co, newPoint.handle_left_type, newPoint.handle_right_type) = (end_co + dirVec, hType, hType)
             
-            newRadius = (stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)) * bScale * splitR
+            newRadius = (stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)) * bScale * splitR1
             newRadius = max(newRadius, minRadius)
-            nRadS = max(stem.radS * bScale * splitR, minRadius)
-            nRadE = max(stem.radE * bScale * splitR, minRadius)
+            #newRadius = max(newRadius, stem.radE * bScale)
+            nRadS = max(stem.radS * bScale * splitR1, minRadius)
+            nRadE = max(stem.radE * bScale * splitR1, minRadius) # * 1
             if (stem.seg == stem.segMax-1) and closeTip:
                 newRadius = 0.0
             newPoint.radius = newRadius
@@ -517,9 +532,10 @@ def growSpline(n, stem, numSplit, splitAng, splitAngV, splitStraight, splineList
     
     newRadius = stem.radS*(1 - (stem.seg + 1)/stem.segMax) + stem.radE*((stem.seg + 1)/stem.segMax)
     if numSplit > 0:
-        newRadius = max(newRadius * splitR, minRadius)
-        stem.radS = max(stem.radS * splitR, minRadius)
-        stem.radE = max(stem.radE * splitR, minRadius)
+        newRadius = max(newRadius * splitR2, minRadius)
+        stem.radS = max(stem.radS * splitR2, minRadius)
+        stem.radE = max(stem.radE * splitR2, minRadius) # * 1
+    newRadius = max(newRadius, stem.radE)
     if (stem.seg == stem.segMax-1) and closeTip:
         newRadius = 0.0
     newPoint.radius = newRadius
@@ -1197,7 +1213,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         # Determine the starting and ending radii of the stem using the tapering of the stem
         #startRad = min((p.radiusPar[0] * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], 10)
         ratio = (p.radiusPar[0] - p.radiusPar[2]) / p.lengthPar
-        startRad = min(((ratio * branchL) ** ratioPower) * radiusTweak[n], 10)#p.radiusPar[1]
+        startRad = min(((ratio * branchL) ** ratioPower) * radiusTweak[n], p.radiusPar[1])#p.radiusPar[1] #10
         #startRad = min((ratio * p.lengthPar * ((branchL / p.lengthPar) ** ratioPower)) * radiusTweak[n], 10)#p.radiusPar[1]
         #p.radiusPar[2] is parent end radius
         if p.offset == 1:
