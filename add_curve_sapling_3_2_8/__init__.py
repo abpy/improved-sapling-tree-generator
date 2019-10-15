@@ -648,7 +648,7 @@ class AddTree(bpy.types.Operator):
 #        description='The greatest increase over Wind Speed',
 #        default=0.0, update=update_tree)
     
-    wind= FloatProperty(name='Overall Wind Strength',
+    wind: FloatProperty(name='Overall Wind Strength',
         description='The intensity of the wind to apply to the armature',
         default=1.0, update=update_tree)
 
@@ -1226,7 +1226,7 @@ def unregister():
     from bpy.utils import unregister_class
     for cls in reversed(classes):
         unregister_class(cls)
-    bpy.types.VIEW3D_MT_curve_add.append(menu_func2)
+    bpy.types.VIEW3D_MT_curve_add.remove(menu_func2)
     bpy.types.VIEW3D_MT_curve_add.remove(menu_func)
 
 if __name__ == "__main__":
