@@ -253,7 +253,7 @@ class AddTree(bpy.types.Operator):
         objects = []
         bObjects = bpy.data.objects
         for obj in bObjects:
-            if (obj.type in ['MESH', 'CURVE', 'SURFACE']) and (obj.name not in ['tree', 'leaves']):
+            if (obj.type in ['MESH', 'CURVE', 'SURFACE']) and (obj.name not in ['tree', 'leaves', 'envelope']):
                 objects.append((obj.name, obj.name, ""))
         
         return objects
@@ -694,7 +694,7 @@ class AddTree(bpy.types.Operator):
         default='',
         subtype='FILE_NAME', update=no_update_tree)
     limitImport = BoolProperty(name='Limit Import',
-        description='Limited imported tree to 2 levels & no leaves for speed',
+        description='Limit imported tree to 2 levels & no leaves for speed',
         default=True, update=no_update_tree)
     overwrite = BoolProperty(name='Overwrite',
         description='When checked, overwrite existing preset files when saving',

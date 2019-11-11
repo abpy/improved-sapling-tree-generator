@@ -253,7 +253,7 @@ class AddTree(bpy.types.Operator):
         objects = []
         bObjects = bpy.data.objects
         for obj in bObjects:
-            if (obj.type in ['MESH', 'CURVE', 'SURFACE']) and (obj.name not in ['tree', 'leaves']):
+            if (obj.type in ['MESH', 'CURVE', 'SURFACE']) and (obj.name not in ['tree', 'leaves', 'envelope']):
                 objects.append((obj.name, obj.name, ""))
         
         return objects
