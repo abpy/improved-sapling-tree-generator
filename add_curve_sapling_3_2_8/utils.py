@@ -1619,7 +1619,7 @@ def addTree(props):
     cu.fill_mode = 'FULL'
     cu.bevel_depth = bevelDepth
     cu.bevel_resolution = bevelRes
-    cu.use_uv_as_generated = True
+    # cu.use_uv_as_generated = True # removed 2.82
     
     #material slots
     for i in range(max(matIndex)+1):
