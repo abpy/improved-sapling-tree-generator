@@ -936,7 +936,7 @@ def kickstart_trunk(addstem, levels, leaves, branches, cu, downAngle, downAngleV
                     ratio, ratioPower, resU, scale0, scaleV0, scaleVal, taper, minRadius, rootFlare, matIndex):
     newSpline = cu.splines.new('BEZIER')
     newSpline.material_index = matIndex[0]
-    cu.resolution_u = resU
+    #cu.resolution_u = resU
     newPoint = newSpline.bezier_points[-1]
     newPoint.co = Vector((0, 0, 0))
     
@@ -1110,7 +1110,7 @@ def fabricate_stems(addsplinetobone, addstem, baseSize, branches, childP, cu, cu
         # Add a spline and set the coordinate of the first point.
         newSpline = cu.splines.new('BEZIER')
         newSpline.material_index = matIndex[n]
-        cu.resolution_u = resU
+        #cu.resolution_u = resU
         newPoint = newSpline.bezier_points[-1]
         newPoint.co = p.co
         tempPos = zAxis.copy()
@@ -1736,6 +1736,8 @@ def addTree(props):
                                                   attractOut, rMode, splitStraight, splitLength, lengthV, taperCrown, noTip, boneStep, rotate, rotateV, leaves, leafType, matIndex)
 
         levelCount.append(len(cu.splines))
+        
+    cu.resolution_u = resU
     
     # If we need to add leaves, we do it here
     leafVerts = []
