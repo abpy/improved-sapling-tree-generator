@@ -3,6 +3,7 @@ A new version of Blenders sapling tree generator addon with improvements, new fe
 
 * For blender 2.7: `add_curve_sapling_3`
 * For blender 2.8: `add_curve_sapling_3_2_8`
+* Latest: `sapling_4`
 
 ##### For tips on using the tree generator see [tips](https://github.com/abpy/improved-sapling-tree-generator/wiki/Tips) in the wiki.
 
