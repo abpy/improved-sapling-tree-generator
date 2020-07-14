@@ -8,6 +8,23 @@ A new version of Blenders sapling tree generator addon with improvements, new fe
 ### New Alternate Version "sapling_4" (quarantine edition)
 * includes many changes to improve usability and appearance of trees
 * breaks backwards compatability with older presets
+* #### Change Log:
+* rearrange interface, remove, add, rename settings
+* add alternate / opposite attachment setting
+* smoother interpolation for custom shape
+* removed pruning
+* splits alternate direction
+* remove taper crown
+* improve split radius ratio
+* split angle is now actual angle and half as much as before
+* branch straightnes affects all levels
+* positve curvature now curves branches up
+* curveature variation is consistant with resoultion
+* length variation affects branches without splits
+* removed curve back
+* improve distance mode
+* change to radius calculation
+* change distribution function
 
 ##### For tips on using the tree generator see [tips](https://github.com/abpy/improved-sapling-tree-generator/wiki/Tips) in the wiki.
 
