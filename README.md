@@ -5,9 +5,9 @@ A new version of Blenders sapling tree generator addon with improvements, new fe
 * For blender 2.8: `add_curve_sapling_3_2_8`
 * Latest: `sapling_4`
 
-### New Alternate Version "sapling_4" (quarantine edition)
+### New Alternate Version "sapling_4"
 * includes many changes to improve usability and appearance of trees
-* breaks backwards compatability with older presets
+* breaks backwards compatibility with older presets
 * #### Change Log:
 * rearrange interface, remove, add, rename settings
 * add alternate / opposite attachment setting
@@ -17,9 +17,9 @@ A new version of Blenders sapling tree generator addon with improvements, new fe
 * remove taper crown
 * improve split radius ratio
 * split angle is now actual angle and half as much as before
-* branch straightnes affects all levels
-* positve curvature now curves branches up
-* curveature variation is consistant with resoultion
+* branch straightness affects all levels
+* positive curvature now curves branches up
+* curvature variation is consistent with resolution
 * length variation affects branches without splits
 * removed curve back
 * improve distance mode
