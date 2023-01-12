@@ -1611,6 +1611,7 @@ def addTree(props):
     scale0 = props.scale0#
     scaleV0 = props.scaleV0#
     attachment = props.attachment
+    leafBaseLevel = int(props.leafBaseLevel)
     leafType = props.leafType
     leafDownAngle = radians(props.leafDownAngle)
     leafDownAngleV = radians(props.leafDownAngleV)
@@ -1711,6 +1712,7 @@ def addTree(props):
     scaleVal += copysign(1e-6, scaleVal)  # Move away from zero to avoid div by zero
     
     childP = []
+    summary_leaf_child_points = []
     stemList = []
 
     levelCount = []
@@ -1757,6 +1759,20 @@ def addTree(props):
                                          splitHeight, attractOut, rMode, splitStraight, splitLength, lengthV, taperCrown,
                                          noTip, boneStep, rotate, rotateV, leaves, leafType, attachment, matIndex)
 
+        # generating anchor points for leaves. Separated from the generation of branch anchor points.
+        if leafBaseLevel <= n:
+            leaves_points = []
+            for stem in stemList:
+                stemLength = stem.offsetLen + (len(stem.spline.bezier_points) - 1) * stem.segL
+                leafs_amount = int(leaves * stemLength / 10.0 + 0.5)
+                if leafs_amount > 0:
+                    range_points = [t / leafs_amount for t in range(leafs_amount) if (t / leafs_amount > leafBaseSize) or (leafBaseLevel < n)]
+
+                    if len(range_points) > 0:
+                        leaves_points.extend(interpStem(stem, range_points, stemLength, baseSize_s))
+
+            summary_leaf_child_points.extend(leaves_points)
+
         levelCount.append(len(cu.splines))
     
     # Set curve resolution
@@ -1774,7 +1790,7 @@ def addTree(props):
         oldRot = 0.0
         n = min(3, n+1)
         # For each of the child points we add leaves
-        for ln, cp in enumerate(childP):
+        for ln, cp in enumerate(summary_leaf_child_points):
             # If the special flag is set then we need to add several leaves at the same location
             if leafType == '4':
                 oldRot = -leafRotate / 2

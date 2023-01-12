@@ -449,6 +449,11 @@ class AddTree(bpy.types.Operator):
         min=0.0,
         max=1.0,
         default=0.20, update=update_tree)
+    leafBaseLevel: IntProperty(name='Leaf Start Level',
+        description='Level of branches on which leaves appear',
+        min=0,
+        max=4    ,
+        default=1, update=update_tree)
     splitHeight: FloatProperty(name='Split Height',
         description='Fraction of tree height with no splits',
         min=0.0,
@@ -894,6 +899,7 @@ class AddTree(bpy.types.Operator):
             box.prop(self, 'leafDist')
             
             box.label(text="")
+            box.prop(self, 'leafBaseLevel')
             box.prop(self, 'leafType')
             box.prop(self, 'leafangle')
             row = box.row()
